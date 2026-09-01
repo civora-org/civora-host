@@ -1,2 +1,15 @@
 inherit_gem:
   decidim-dev: rubocop-decidim.yml
+
+# Vendored upstream migrations (db/migrate/*.decidim*.rb) are frozen copies
+# shipped by Decidim's installer; db/schema.rb is Rails-dumped; bin/* are
+# binstubs; node_modules and vendor/bundle (CI's bundler install dir, whose
+# gems carry their own .rubocop.yml files) are third-party. None are our
+# code to lint.
+AllCops:
+  Exclude:
+    - "db/migrate/*.decidim*.rb"
+    - "db/schema.rb"
+    - "bin/*"
+    - "node_modules/**/*"
+    - "vendor/**/*"

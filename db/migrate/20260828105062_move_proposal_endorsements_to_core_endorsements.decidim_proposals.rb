@@ -27,7 +27,7 @@ class MoveProposalEndorsementsToCoreEndorsements < ActiveRecord::Migration[5.2]
       )
     end
     # update new `decidim_proposals_proposal.endorsements_count` counter cache
-    Decidim::Proposals::Proposal.unscoped.select(:id).all.find_each do |proposal|
+    Decidim::Proposals::Proposal.unscoped.select(:id).find_each do |proposal|
       Decidim::Proposals::Proposal.reset_counters(proposal.id, :endorsements)
     end
   end
@@ -48,7 +48,7 @@ class MoveProposalEndorsementsToCoreEndorsements < ActiveRecord::Migration[5.2]
       )
     end
     # update `decidim_proposals_proposal.proposal_endorsements_count` counter cache
-    Decidim::Proposals::Proposal.select(:id).all.find_each do |proposal|
+    Decidim::Proposals::Proposal.select(:id).find_each do |proposal|
       Decidim::Proposals::Proposal.reset_counters(proposal.id, :proposal_endorsements)
     end
   end

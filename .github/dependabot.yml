@@ -1,0 +1,16 @@
+# Dependabot scope note:
+# - github-actions and docker: keep CI actions and the base image current.
+# - bundler: NOT enabled — the private git-pinned engine
+#   (decidim-contracts_sk) cannot be resolved by Dependabot's bundler
+#   ecosystem on private repos. Gem updates happen through reviewed
+#   `bundle update` PRs instead.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

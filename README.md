@@ -59,6 +59,12 @@ bundle config unset --local local.decidim-contracts_sk
 
 The local checkout **must** sit at the pinned revision, otherwise Bundler refuses — that is deliberate: the host always boots a reproducible engine version. Advancing the engine means cutting an engine release and bumping the tag here.
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`: rubocop, minitest (Postgres service), brakeman (`--exit-on-warn`, one documented ignore for the upstream-pinned EOL Rails warning — `config/brakeman.ignore`), and bundler-audit (per-advisory ignores in `.bundler-audit.yml`, all provably upstream-blocked with revisit conditions).
+
+CI authenticates to the private engine repository via the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`) — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
+
 ## Docker (scaffold only)
 
 A generator-provided `Dockerfile` (single `FROM decidim/decidim:0.31.7` line) and `docker-compose.yml` exist as starting points. A real, production-usable container baseline is tracked as `civora-org/civora-platform#48`.

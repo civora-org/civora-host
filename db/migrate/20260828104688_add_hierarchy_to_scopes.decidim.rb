@@ -34,7 +34,7 @@ class AddHierarchyToScopes < ActiveRecord::Migration[5.0]
 
     current_data.each do |s|
       locales = Organization.find(s["decidim_organization_id"]).available_locales
-      name = s["name"].gsub(/'/, "''")
+      name = s["name"].gsub("'", "''")
       execute("
         UPDATE decidim_scopes
         SET name = '#{locales.index_with { name }.to_json}',
