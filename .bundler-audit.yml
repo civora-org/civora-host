@@ -1,0 +1,19 @@
+# bundler-audit configuration (auto-loaded; --config defaults to this file).
+#
+# POLICY: ignores are exhaustive per-advisory (never per-gem), so any NEW
+# advisory not listed here still fails CI and forces a fresh disposition.
+#
+# puma 6.6.1 (CVE-2026-47736, CVE-2026-47737 — High):
+#   Blocked upstream: decidim-dev 0.31.7 pins `puma (~> 6.5)`, so the fixed
+#   lines (>= 7.2.1 / >= 8.0.2) are unresolvable while on Decidim 0.31.x.
+#   REVISIT: next Decidim release that relaxes the puma pin.
+#
+# Context: everything else the 2026-09-01 scan surfaced (nokogiri, rack,
+# rails 7.2.2.2 CVEs, devise, addressable, concurrent-ruby, ...) was fixed
+# by `bundle update` within the decidim 0.31.7 constraints — this file only
+# ever holds what is provably upstream-blocked.
+---
+ignore:
+  # puma 6.6.1, pinned by decidim-dev 0.31.7
+  - CVE-2026-47736
+  - CVE-2026-47737

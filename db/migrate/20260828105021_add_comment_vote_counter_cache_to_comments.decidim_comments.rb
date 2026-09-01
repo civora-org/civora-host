@@ -3,8 +3,10 @@
 # This migration comes from decidim_comments (originally 20240304092558)
 class AddCommentVoteCounterCacheToComments < ActiveRecord::Migration[6.1]
   def change
-    add_column :decidim_comments_comments, :up_votes_count, :integer, null: false, default: 0, index: true
-    add_column :decidim_comments_comments, :down_votes_count, :integer, null: false, default: 0, index: true
+    add_column :decidim_comments_comments, :up_votes_count, :integer, null: false, default: 0
+    add_index :decidim_comments_comments, :up_votes_count
+    add_column :decidim_comments_comments, :down_votes_count, :integer, null: false, default: 0
+    add_index :decidim_comments_comments, :down_votes_count
 
     # We cannot use the reset_counters as up_votes and down_votes are scoped associationws
     reversible do |dir|

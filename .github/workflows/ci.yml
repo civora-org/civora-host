@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: rubocop
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # Private engine gem: authenticate git before setup-ruby's bundle install.
+      - name: Configure git auth for private gems
+        run: git config --global url."https://x-access-token:${{ secrets.ENGINE_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.4'
+          bundler-cache: true
+      - name: RuboCop
+        run: bundle exec rubocop
+
+  test:
+    name: minitest
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Configure git auth for private gems
+        run: git config --global url."https://x-access-token:${{ secrets.ENGINE_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.4'
+          bundler-cache: true
+      - name: Prepare test database
+        run: bin/rails db:create db:schema:load
+      - name: Run tests
+        run: bin/rails test
+
+  brakeman:
+    name: brakeman
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Configure git auth for private gems
+        run: git config --global url."https://x-access-token:${{ secrets.ENGINE_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.4'
+          bundler-cache: true
+      - name: Brakeman (fail on new warnings)
+        run: bundle exec brakeman --exit-on-warn -q
+
+  audit:
+    name: bundler-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Configure git auth for private gems
+        run: git config --global url."https://x-access-token:${{ secrets.ENGINE_READ_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.4'
+          bundler-cache: true
+      - name: Audit gems
+        run: bundle exec bundler-audit check --update

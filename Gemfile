@@ -24,6 +24,7 @@ group :development, :test do
   gem "byebug", "~> 11.0", platform: :mri
 
   gem "brakeman", "~> 7.0"
+  gem "bundler-audit", "~> 0.9"
   gem "decidim-dev", "0.31.7"
   gem "net-imap", "~> 0.5.0"
   gem "net-pop", "~> 0.1.1"
@@ -33,7 +34,4 @@ group :development do
   gem "letter_opener_web", "~> 2.0"
   gem "listen", "~> 3.1"
   gem "web-console", "~> 4.2"
-end
-
-group :production do
 end
