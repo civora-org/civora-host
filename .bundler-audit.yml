@@ -3,17 +3,36 @@
 # POLICY: ignores are exhaustive per-advisory (never per-gem), so any NEW
 # advisory not listed here still fails CI and forces a fresh disposition.
 #
-# puma 6.6.1 (CVE-2026-47736, CVE-2026-47737 — High):
-#   Blocked upstream: decidim-dev 0.31.7 pins `puma (~> 6.5)`, so the fixed
-#   lines (>= 7.2.1 / >= 8.0.2) are unresolvable while on Decidim 0.31.x.
-#   REVISIT: next Decidim release that relaxes the puma pin.
-#
-# Context: everything else the 2026-09-01 scan surfaced (nokogiri, rack,
-# rails 7.2.2.2 CVEs, devise, addressable, concurrent-ruby, ...) was fixed
-# by `bundle update` within the decidim 0.31.7 constraints — this file only
-# ever holds what is provably upstream-blocked.
+# Everything below is blocked upstream by the decidim 0.31.7 pins:
+# - rails 7.2.x is EOL (7.2.3 is the final release; the 2026 actionview /
+#   activestorage / activesupport CVEs will never be patched on this line);
+# - devise 4.9.4 is the newest release allowed by `devise ~> 4.7` and remains
+#   unpatched;
+# - shakapacker >= 9.5.0 is unresolvable under decidim-core's `~> 8.3.0`;
+# - puma >= 7.2.1 is unresolvable under decidim-dev's `~> 6.5`.
+# Everything else the 2026-09-01 scan surfaced (nokogiri, rack, addressable,
+# concurrent-ruby, ...) was fixed by `bundle update` within the constraints —
+# this file only ever holds what is provably upstream-blocked.
+# REVISIT: every entry — on the next Decidim upgrade that relaxes these pins.
+# Mirrors .bundler-audit.yml in the engine (decidim-contracts_sk).
 ---
 ignore:
-  # puma 6.6.1, pinned by decidim-dev 0.31.7
+  # rails 7.2.3 EOL line (actionview / activestorage / activesupport)
+  - CVE-2026-33168
+  - CVE-2026-33173
+  - CVE-2026-33174
+  - CVE-2026-33195
+  - CVE-2026-33202
+  - CVE-2026-33658
+  - CVE-2026-66066
+  - CVE-2026-33169
+  - CVE-2026-33170
+  - CVE-2026-33176
+  # devise 4.9.4
+  - CVE-2026-32700
+  - CVE-2026-40295
+  # shakapacker 8.3.x
+  - GHSA-96qw-h329-v5rg
+  # puma 6.6.1 (decidim-dev pin)
   - CVE-2026-47736
   - CVE-2026-47737
