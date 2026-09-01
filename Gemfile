@@ -26,6 +26,8 @@ group :development, :test do
   gem "brakeman", "~> 7.0"
   gem "bundler-audit", "~> 0.9"
   gem "decidim-dev", "0.31.7"
+  # rubocop-rake: required by the inherited decidim-dev rubocop config
+  gem "rubocop-rake", "~> 0.7"
   gem "net-imap", "~> 0.5.0"
   gem "net-pop", "~> 0.1.1"
 end

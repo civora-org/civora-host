@@ -812,6 +812,9 @@ GEM
       rack (>= 1.1)
       rubocop (>= 1.75.0, < 2.0)
       rubocop-ast (>= 1.44.0, < 2.0)
+    rubocop-rake (0.7.1)
+      lint_roller (~> 1.1)
+      rubocop (>= 1.72.1)
     rubocop-rspec (3.7.0)
       lint_roller (~> 1.1)
       rubocop (~> 1.72, >= 1.72.1)
@@ -944,6 +947,7 @@ DEPENDENCIES
   net-imap (~> 0.5.0)
   net-pop (~> 0.1.1)
   puma (>= 6.3.1)
+  rubocop-rake (~> 0.7)
   web-console (~> 4.2)
 
 RUBY VERSION
