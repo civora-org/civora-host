@@ -39,6 +39,7 @@ bin/dev        # rails server (0.0.0.0:3000) + Shakapacker dev server (Procfile.
 Smoke checks once running:
 
 - `GET /up` — Rails health endpoint (also the uptime target for monitoring)
+- `GET /healthz` — deep health check: database + Redis connectivity (also a monitored probe; 503 + JSON status on failure)
 - `GET /contracts` — the contracts engine's public catalogue
 
 ## Working on the engine alongside this app
@@ -108,24 +109,35 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 
 ## Operations
 
-Secrets handling, environments, and backup/restore are documented under `docs/ops/`:
+Secrets handling, environments, backup/restore, logging and observability are documented under `docs/ops/`:
 
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
 - [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
+- [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules
+- [`docs/ops/observability.md`](docs/ops/observability.md) — self-hosted error tracking (GlitchTip), metrics (Prometheus), alerting (Alertmanager), backup dead-man switch, synthetic-failure tests
 
 Operational scripts:
 
 ```bash
-scripts/backup.sh            # pg_dump + attachments tar + manifest + sha256 -> backups/
+scripts/backup.sh            # pg_dump + attachments tar + manifest + sha256 -> backups/ (+ dead-man ping)
 scripts/backup_prune.sh      # retention: 7 daily / 4 weekly / 6 monthly
-scripts/deploy.sh            # backup-gated deploy: backup -> verify -> up -> smoke
+scripts/deploy.sh            # backup-gated deploy: backup -> verify -> up -> smoke -> monitoring review
 scripts/restore_drill.sh     # full restore into an isolated stack, verified + logged
 scripts/install-hooks.sh     # gitleaks pre-commit hook
 ```
 
-Deploys must go through `scripts/deploy.sh` — it aborts unless a verified backup was taken first (the "Backup completed" gate from the platform CI/CD plan).
+Deploys must go through `scripts/deploy.sh` — it aborts unless a verified backup was taken first (the "Backup completed" gate from the platform CI/CD plan) and re-checks deep health (`/healthz`) after the smoke test.
+
+Self-hosted monitoring (GlitchTip, Prometheus, Alertmanager, blackbox probes, pushgateway) rides on a compose overlay. Compose file selection is driven by `COMPOSE_FILE` (read by docker compose from `.env`):
+
+```bash
+echo 'COMPOSE_FILE=compose.yaml:compose.observability.yml' >> .env
+docker compose up -d
+```
+
+Without that line (and on machines without `compose.observability.yml`), plain `docker compose` and the ops scripts run the base stack only.
 
 ## License
 

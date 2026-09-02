@@ -1,0 +1,67 @@
+# Prometheus scrape configuration (civora-org/civora-platform#51).
+# Loaded via compose.observability.yml (mount: /etc/prometheus/prometheus.yml).
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+# Where rule alerts are delivered (Alertmanager routes them to the
+# configured webhook receiver).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  # Rails request metrics pushed by PrometheusExporter::Middleware
+  # (config/initializers/prometheus_exporter.rb): ruby_http_requests_total,
+  # ruby_http_request_duration_seconds, ...
+  - job_name: prometheus-exporter
+    static_configs:
+      - targets: ["prometheus-exporter:9394"]
+
+  # Shallow uptime probe: app boots and serves (Rails /up).
+  - job_name: blackbox-up
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://app:3000/up
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Deep health probe: database + Redis connectivity (/healthz).
+  # Firing this is warning severity (see rules.yml) — /up already covers
+  # "process is alive"; /healthz failing while /up succeeds means a
+  # dependency is down.
+  - job_name: blackbox-healthz
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://app:3000/healthz
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Backup dead-man switch: pushgateway holds the last-success timestamp
+  # pushed by scripts/backup.sh (civora_backup_last_success_unixtime, read by
+  # the BackupStale rule). honor_labels keeps the pushed job label
+  # (job="civora-backup") instead of overwriting it with the scrape job name.
+  - job_name: pushgateway
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]
