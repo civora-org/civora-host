@@ -78,12 +78,13 @@ test:
 # available as an environment variable. For example:
 #
 #   DATABASE_URL="postgres://myuser:mypass@localhost/somedatabase"
-#
-# You can use this database configuration with:
-#
-#   production:
-#     url: <%= ENV['DATABASE_URL'] %>
 
 production:
   <<: *default
+  database: <%= ENV.fetch("DATABASE_NAME", "decidim_app_production") %>
+  # URL-style config (if ever needed) must be conditional: an unconditional
+  # `url: nil` silently falls back to the adapter default database (the
+  # username), which pointed this app at the `postgres` database.
+  <% if ENV['DATABASE_URL'] %>
   url: <%= ENV['DATABASE_URL'] %>
+  <% end %>
