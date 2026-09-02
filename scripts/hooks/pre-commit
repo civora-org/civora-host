@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: block commits containing secrets (gitleaks).
+# Install: scripts/install-hooks.sh   (requires: brew install gitleaks)
+#
+# This hook warns and allows if gitleaks is missing — CI (secret-scan job)
+# is the hard gate, since GitHub push protection is unavailable on the
+# org's free plan. See docs/ops/secrets.md.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "WARNING: gitleaks not installed — skipping secret scan." >&2
+  echo "Install it (brew install gitleaks) and run scripts/install-hooks.sh." >&2
+  exit 0
+fi
+
+gitleaks protect --staged --redact -v
