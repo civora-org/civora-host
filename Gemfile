@@ -20,6 +20,11 @@ gem "bootsnap", "~> 1.3"
 
 gem "puma", ">= 6.3.1"
 
+# Observability baseline (civora-org/civora-platform#51)
+gem "prometheus_exporter", "~> 2.1"
+gem "sentry-rails", "~> 5.22"
+gem "sentry-ruby", "~> 5.22"
+
 group :development, :test do
   gem "byebug", "~> 11.0", platform: :mri
 
