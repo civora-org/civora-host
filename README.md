@@ -20,6 +20,9 @@ gh auth setup-git          # HTTPS via GitHub CLI token (recommended)
 
 bundle install
 DISABLE_SPRING=1 bin/rails db:create db:migrate db:seed
+
+# one-time: install the gitleaks pre-commit hook (secret scanning)
+scripts/install-hooks.sh    # requires `brew install gitleaks` (or equivalent)
 ```
 
 Database connection is env-driven (`config/database.yml`):
@@ -61,7 +64,7 @@ The local checkout **must** sit at the pinned revision, otherwise Bundler refuse
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`: rubocop, minitest (Postgres service), brakeman (`--exit-on-warn`, one documented ignore for the upstream-pinned EOL Rails warning — `config/brakeman.ignore`), and bundler-audit (per-advisory ignores in `.bundler-audit.yml`, all provably upstream-blocked with revisit conditions).
+GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`: rubocop, minitest (Postgres 17 service, matching production), brakeman (`--exit-on-warn`, one documented ignore for the upstream-pinned EOL Rails warning — `config/brakeman.ignore`), bundler-audit (per-advisory ignores in `.bundler-audit.yml`, all provably upstream-blocked with revisit conditions), and a full-history gitleaks secret scan (`.gitleaks.toml`).
 
 CI authenticates to the private engine repository via the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`) — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
 
