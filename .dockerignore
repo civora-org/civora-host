@@ -46,3 +46,11 @@
 # Ignore Docker-related files
 /.dockerignore
 /Dockerfile*
+
+# Engine/dev artifacts not needed in the image.
+/compose.yaml
+/compose.dev.yml
+/docker-compose*.yml
+/scripts
+/Procfile.dev
+/docs

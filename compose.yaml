@@ -1,0 +1,74 @@
+name: civora-host
+
+services:
+  app:
+    build:
+      context: .
+      secrets:
+        - github_token
+    image: civora-host:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      RAILS_ENV: production
+      # No TLS terminator in the baseline stack yet; remove this override
+      # (Decidim then defaults to forcing SSL in production) once a reverse
+      # proxy terminates HTTPS in front of app.
+      DECIDIM_FORCE_SSL: "0"
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379/1
+    ports:
+      - "3000:3000"
+    volumes:
+      - app-storage:/app/storage
+      - app-log:/app/log
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "ruby", "-rnet/http", "-e", "exit(Net::HTTP.get_response(URI(\"http://127.0.0.1:3000/up\")).code == \"200\" ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: decidim_app_production
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d decidim_app_production"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  app-storage: {}
+  app-log: {}
+  pg-data: {}
+  redis-data: {}
+
+secrets:
+  github_token:
+    environment: GITHUB_TOKEN

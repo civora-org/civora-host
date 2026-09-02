@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
+# Idempotent, deterministic seeds — no faker, no PII (see civora-org/civora-platform#48).
 #
-# Example:
-#
-#   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
-#     MovieGenre.find_or_create_by!(name: genre_name)
-#   end
-# You can remove the 'faker' gem if you do not want Decidim seeds.
-Decidim.seed!
+# Decidim cannot serve any page (including the /contracts engine mount)
+# without a current organization, so a minimal one is required on a fresh
+# database. Keep this seed minimal and safe to run in production.
+
+Decidim::Organization.find_or_create_by!(host: ENV.fetch("DECIDIM_ORG_HOST", "localhost")) do |org|
+  org.name = { "en" => "Civora", "sk" => "Civora" }
+  org.default_locale = "en"
+  org.available_locales = %w(en sk)
+  org.reference_prefix = "CIV"
+  org.time_zone = "Bratislava"
+end

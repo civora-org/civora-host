@@ -65,9 +65,43 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`:
 
 CI authenticates to the private engine repository via the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`) — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
 
-## Docker (scaffold only)
+## Docker
 
-A generator-provided `Dockerfile` (single `FROM decidim/decidim:0.31.7` line) and `docker-compose.yml` exist as starting points. A real, production-usable container baseline is tracked as `civora-org/civora-platform#48`.
+Production-baseline container stack (tracked as `civora-org/civora-platform#48`):
+
+- **`Dockerfile`** — multi-stage build on `ruby:3.3.4-slim` (matching the pinned Ruby). The builder stage installs the toolchain and compiles assets; the runtime stage has no build tools, runs as non-root user `rails` (UID 1000), and ships only runtime libs (`libpq5`, `libjemalloc2`, `libicu`, ImageMagick/Vips).
+- **`compose.yaml`** — prod-baseline stack: `app` + Postgres 17 + Redis (required by the production ActionCable config). Healthchecks on all three services (`/up` for the app). Migrations and the idempotent seed run on boot via `bin/docker-entrypoint`.
+- **`compose.dev.yml`** — overlay restoring the bind-mount dev loop:
+  `docker compose -f compose.yaml -f compose.dev.yml up`
+
+### Build & run (clean machine)
+
+Prerequisites: Docker with Compose v2 and a GitHub token with read access to `civora-org/decidim-contracts_sk` (the engine gem is fetched from the private repo at build time).
+
+```bash
+cp .env.example .env                       # then fill in:
+#   POSTGRES_PASSWORD=<random hex>        (openssl rand -hex 16)
+#   SECRET_KEY_BASE=<random hex>          (openssl rand -hex 64)
+#   GITHUB_TOKEN=<token with repo read>
+
+GITHUB_TOKEN="$(grep GITHUB_TOKEN .env | cut -d= -f2)" docker compose up -d --build
+curl -fsS http://localhost:3000/contracts  # -> 200
+```
+
+The token is passed as a BuildKit **secret mount**, never a build arg — it is not present in image history or layers (verified with `docker history --no-trunc` / `docker save | grep`).
+
+A full clean-state smoke test is available:
+
+```bash
+GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /contracts -> 200
+```
+
+### Current limitations
+
+- `DECIDIM_FORCE_SSL=0` is set because no TLS terminator exists yet; remove the override once a reverse proxy terminates HTTPS in front of `app`.
+- Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
+- Built for the host architecture only; multi-arch (buildx) is a follow-up.
+- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v0.6.1`) keeps the result deterministic.
 
 ## License
 
