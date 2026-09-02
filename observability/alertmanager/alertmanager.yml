@@ -1,0 +1,38 @@
+# Alertmanager routing (civora-org/civora-platform#51).
+#
+# The webhook URL is not configurable via env in Alertmanager itself, so this
+# file is mounted as a template (.yml.tmpl) and compose.observability.yml
+# substitutes __ALERT_WEBHOOK_URL__ with $ALERT_WEBHOOK_URL at start. When
+# ALERT_WEBHOOK_URL is unset the fallback blackhole URL (nothing listens on
+# the localhost webhook port) is used instead: delivery attempts fail and are
+# logged, and alerts remain visible in the Alertmanager UI — the "log"
+# fallback until a real receiver is configured.
+global:
+  resolve_timeout: 5m
+
+route:
+  # Catch-all: unmatched alerts end at the logging fallback.
+  receiver: fallback-log
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # All known severities go to the webhook receiver; downstream consumers
+    # filter on the severity label (critical / high / warning).
+    - matchers:
+        - severity =~ "critical|high|warning"
+      receiver: alert-webhook
+
+receivers:
+  - name: alert-webhook
+    webhook_configs:
+      - url: __ALERT_WEBHOOK_URL__
+        send_resolved: true
+
+  - name: fallback-log
+    webhook_configs:
+      # Blackhole: delivery fails by design, attempts are logged by
+      # Alertmanager; alerts stay browsable in its UI.
+      - url: http://127.0.0.1:5001/
+        send_resolved: false

@@ -1,0 +1,83 @@
+# Alert rules for the Civora host app (civora-org/civora-platform#51).
+# Thresholds follow docs/05-operations/civora-ci-cd-plan.md ("Alerting Rules"):
+#   critical — page immediately; high — notify within 1 hour; warning — minor.
+# Metric names reflect prometheus_exporter defaults: the server applies the
+# "ruby_" prefix, so the request counter is ruby_http_requests_total with a
+# "status" label.
+groups:
+  - name: civora-availability
+    rules:
+      # Critical: uptime <95% in a 5-minute window (blackbox probe success rate).
+      - alert: AppUptimeCritical
+        expr: avg_over_time(probe_success{job="blackbox-up"}[5m]) < 0.95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "App uptime below 95% (5m window)"
+          description: "The blackbox probe of {{ $labels.instance }} succeeded only {{ $value | humanizePercentage }} of the time over the last 5 minutes."
+
+      # High: uptime <99% in a 1-hour window.
+      - alert: AppUptimeHigh
+        expr: avg_over_time(probe_success{job="blackbox-up"}[1h]) < 0.99
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "App uptime below 99% (1h window)"
+          description: "The blackbox probe of {{ $labels.instance }} succeeded only {{ $value | humanizePercentage }} of the time over the last hour."
+
+      # Warning: deep health check failing (database or Redis unreachable).
+      # /up still succeeding means the process is alive; a dependency is down.
+      - alert: DeepHealthCheckFailing
+        expr: probe_success{job="blackbox-healthz"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deep health check failing (/healthz)"
+          description: "GET {{ $labels.instance }} is not returning 200 — database and/or Redis connectivity is broken."
+
+  - name: civora-errors
+    rules:
+      # Critical: HTTP error rate >5% in a 5-minute window (5xx / total).
+      - alert: HttpErrorRateCritical
+        expr: |
+          sum(rate(ruby_http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(ruby_http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx error rate above 5% (5m window)"
+          description: "{{ $value | humanizePercentage }} of requests returned 5xx over the last 5 minutes."
+
+      # High: HTTP error rate >1% in a 1-hour window.
+      - alert: HttpErrorRateHigh
+        expr: |
+          sum(rate(ruby_http_requests_total{status=~"5.."}[1h]))
+            / sum(rate(ruby_http_requests_total[1h])) > 0.01
+        for: 5m
+        labels:
+          severity: high
+        annotations:
+          summary: "HTTP 5xx error rate above 1% (1h window)"
+          description: "{{ $value | humanizePercentage }} of requests returned 5xx over the last hour."
+
+  - name: civora-backup
+    rules:
+      # High: backup dead-man switch. scripts/backup.sh pushes
+      # civora_backup_last_success_unixtime to pushgateway after every
+      # successful run (cron: nightly 03:15 Europe/Bratislava). Alert when
+      # the timestamp is stale for more than 26h (one missed night plus
+      # margin) or has never been pushed.
+      - alert: BackupStale
+        expr: |
+          (time() - civora_backup_last_success_unixtime > 93600)
+            or absent(civora_backup_last_success_unixtime) == 1
+        for: 10m
+        labels:
+          severity: high
+        annotations:
+          summary: "Backup has not succeeded for more than 26 hours"
+          description: "No successful backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron job and scripts/backup.sh output."

@@ -58,5 +58,29 @@ $COMPOSE exec -T db psql -U postgres -d decidim_app_production -Atc "
 echo "==> Checksums"
 (cd "$OUT" && shasum -a 256 db.dump storage.tar.gz > sha256.txt)
 
+# Dead-man ping (civora-org/civora-platform#51): report the last successful
+# backup to pushgateway; Prometheus alerts (BackupStale, >26h) when it goes
+# stale. Deliberately non-fatal: a failed ping must NOT turn a good backup
+# into a cron failure — the staleness alert covers the missed ping.
+# Cron does not source .env, so pick PUSHGATEWAY_URL up from there when the
+# environment does not already carry it (same grep pattern as deploy.sh).
+if [ -z "${PUSHGATEWAY_URL:-}" ] && grep -q '^PUSHGATEWAY_URL=' .env 2>/dev/null; then
+  PUSHGATEWAY_URL="$(grep '^PUSHGATEWAY_URL=' .env | cut -d= -f2-)"
+fi
+if [ -n "${PUSHGATEWAY_URL:-}" ]; then
+  echo "==> Pushgateway dead-man ping"
+  if printf 'civora_backup_last_success_unixtime %s\n' "$(date -u +%s)" \
+    | curl -fsS --max-time 10 --data-binary @- \
+      "$PUSHGATEWAY_URL/metrics/job/civora-backup"; then
+    echo "    ping ok"
+  else
+    echo "    WARNING: pushgateway ping failed (backup itself succeeded)"
+  fi
+else
+  echo "WARNING: PUSHGATEWAY_URL is not set — dead-man ping skipped;" \
+    "the BackupStale alert will stay firing until it is armed" \
+    "(docs/ops/observability.md)"
+fi
+
 echo "Backup written to $OUT"
 cat "$OUT/manifest.json"

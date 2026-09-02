@@ -1,0 +1,193 @@
+# Observability overlay: fully self-hosted error tracking, metrics and
+# alerting (civora-org/civora-platform#51).
+#
+# Usage (pick one — see docs/ops/observability.md):
+#   echo 'COMPOSE_FILE=compose.yaml:compose.observability.yml' >> .env
+#   docker compose up -d
+# or explicitly:
+#   docker compose -f compose.yaml -f compose.observability.yml up -d
+#
+# Required .env additions (see docs/ops/observability.md):
+#   GLITCHTIP_SECRET_KEY    secret key for the GlitchTip services
+#   GLITCHTIP_DB_PASSWORD   password for the GlitchTip Postgres database
+# Optional:
+#   GLITCHTIP_DOMAIN        public base URL of GlitchTip (default localhost)
+#   SENTRY_DSN              app error reporting → GlitchTip project DSN
+#   PUSHGATEWAY_URL         backup dead-man ping target (scripts/backup.sh)
+#   ALERT_WEBHOOK_URL       where Alertmanager delivers critical/high alerts
+#
+# Only the ports needed for local testing are published, bound to 127.0.0.1
+# (GlitchTip UI, Prometheus UI, Alertmanager UI, pushgateway for the host-side
+# backup cron). Everything else stays on the compose network.
+#
+# Image tags are pinned (verified against Docker Hub); bump deliberately.
+# Every service caps json-file logs (see docs/ops/log-policy.md).
+x-glitchtip-environment: &glitchtip-environment
+  DATABASE_URL: postgres://postgres:${GLITCHTIP_DB_PASSWORD:?set GLITCHTIP_DB_PASSWORD in .env}@glitchtip-db:5432/glitchtip
+  REDIS_URL: redis://redis:6379/2
+  SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?set GLITCHTIP_SECRET_KEY in .env}
+  GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:8080}
+  PORT: "8080"
+
+services:
+  app:
+    environment:
+      # Metrics middleware (config/initializers/prometheus_exporter.rb) only
+      # activates when a host is configured; the client reads these vars.
+      PROMETHEUS_EXPORTER_HOST: prometheus-exporter
+      PROMETHEUS_EXPORTER_PORT: "9394"
+    depends_on:
+      prometheus-exporter:
+        condition: service_started
+
+  # Metrics collector: scrapes metrics pushed by the Rails middleware via
+  # PrometheusExporter::Client and exposes them on /metrics for Prometheus.
+  # Reuses the app image so the collector version matches the SDK version.
+  prometheus-exporter:
+    image: civora-host:latest
+    restart: unless-stopped
+    # Flags verified against the installed gem (prometheus_exporter 2.3.1,
+    # exe/prometheus_exporter): -b/--bind, -p/--port.
+    command: ["bundle", "exec", "prometheus_exporter", "-b", "0.0.0.0", "-p", "9394"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Sentry-protocol error tracking; the app's sentry-rails SDK points its
+  # SENTRY_DSN at a GlitchTip project DSN.
+  glitchtip:
+    image: glitchtip/glitchtip:v5
+    restart: unless-stopped
+    # The stock entrypoint does not migrate; a fresh glitchtip-db otherwise
+    # boots unusable (proven in the #51 verification run).
+    command: ["sh", "-c", "./manage.py migrate && exec ./bin/run-web.sh"]
+    environment: *glitchtip-environment
+    ports:
+      - "127.0.0.1:8080:8080"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      glitchtip-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Background event processor for GlitchTip (same image, worker entrypoint).
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v5
+    restart: unless-stopped
+    command: ["./bin/run-celery.sh"]
+    environment: *glitchtip-environment
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      glitchtip-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  glitchtip-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?set GLITCHTIP_DB_PASSWORD in .env}
+      POSTGRES_DB: glitchtip
+    volumes:
+      - glitchtip-db-data:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d glitchtip"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/rules.yml:/etc/prometheus/rules.yml:ro
+      - prom-data:/prometheus
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9093:9093"
+    # Alertmanager config files cannot read env vars, so the URL placeholder
+    # in the mounted template is substituted here (busybox sed) at start.
+    # "$$url" (escaped dollar) keeps compose from eating the shell variable;
+    # the sed escape guards against '&' (sed "whole match") in real URLs.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        url="$(printf '%s' "${ALERT_WEBHOOK_URL:-http://127.0.0.1:5001/}" | sed 's/[\\&|]/\\&/g')"
+        sed "s|__ALERT_WEBHOOK_URL__|$$url|g" /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
+    volumes:
+      - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.tmpl:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  # Synthetic uptime probes: Prometheus scrapes probe results from here.
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/blackbox_exporter/config.yml"]
+    volumes:
+      - ./observability/blackbox/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backup dead-man switch: scripts/backup.sh pushes a last-success timestamp
+  # here after every successful run; Prometheus alerts when it goes stale
+  # (>26h — the backup cron runs nightly at 03:15 Europe/Bratislava).
+  pushgateway:
+    image: prom/pushgateway:v1.11.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9091:9091"
+    command:
+      - "--persistence.file=/data/pushgateway.metric"
+      - "--persistence.interval=5m"
+    volumes:
+      - pushgateway-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  prom-data: {}
+  glitchtip-db-data: {}
+  pushgateway-data: {}

@@ -11,6 +11,10 @@ services:
     env_file: .env
     environment:
       RAILS_ENV: production
+      # Release provenance, read by config/initializers/sentry.rb for the
+      # GlitchTip release; scripts/deploy.sh exports it from git before
+      # `docker compose up` (empty default keeps base-only usage working).
+      GIT_REVISION: ${GIT_REVISION:-}
       # No TLS terminator in the baseline stack yet; remove this override
       # (Decidim then defaults to forcing SSL in production) once a reverse
       # proxy terminates HTTPS in front of app.
@@ -22,6 +26,11 @@ services:
       REDIS_URL: redis://redis:6379/1
     ports:
       - "3000:3000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     volumes:
       - app-storage:/app/storage
       - app-log:/app/log
@@ -46,6 +55,11 @@ services:
       POSTGRES_DB: decidim_app_production
     volumes:
       - pg-data:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d decidim_app_production"]
       interval: 5s
@@ -57,6 +71,11 @@ services:
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

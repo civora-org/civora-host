@@ -1,0 +1,9 @@
+# Blackbox exporter probe modules (civora-org/civora-platform#51).
+# Targets and module selection live in prometheus.yml; this file only
+# defines how a probe is executed.
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      preferred_ip_protocol: ip4
