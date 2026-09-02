@@ -108,12 +108,24 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 
 ## Operations
 
-Secrets handling and environments are documented under `docs/ops/`:
+Secrets handling, environments, and backup/restore are documented under `docs/ops/`:
 
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
+- [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
+- [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 
-Backup & restore runbook, deploy procedure, and the restore drill are the next ops milestone (`civora-org/civora-platform#50`).
+Operational scripts:
+
+```bash
+scripts/backup.sh            # pg_dump + attachments tar + manifest + sha256 -> backups/
+scripts/backup_prune.sh      # retention: 7 daily / 4 weekly / 6 monthly
+scripts/deploy.sh            # backup-gated deploy: backup -> verify -> up -> smoke
+scripts/restore_drill.sh     # full restore into an isolated stack, verified + logged
+scripts/install-hooks.sh     # gitleaks pre-commit hook
+```
+
+Deploys must go through `scripts/deploy.sh` — it aborts unless a verified backup was taken first (the "Backup completed" gate from the platform CI/CD plan).
 
 ## License
 

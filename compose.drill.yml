@@ -1,0 +1,14 @@
+# Overlay for the restore drill (scripts/restore_drill.sh): throwaway secrets
+# and an ephemeral host port so the drill never touches the real stack.
+# Run only via: docker compose -p civora-restore-drill -f compose.yaml -f compose.drill.yml
+services:
+  app:
+    environment:
+      DATABASE_PASSWORD: ${DRILL_PASSWORD:?drill-only overlay}
+      SECRET_KEY_BASE: ${DRILL_KEYBASE:?drill-only overlay}
+    ports: !override
+      - "${PORT:-3100}:3000"
+
+  db:
+    environment:
+      POSTGRES_PASSWORD: ${DRILL_PASSWORD:?drill-only overlay}

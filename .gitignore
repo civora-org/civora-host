@@ -35,6 +35,9 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
+# Ignore backups (contain internal data; created by scripts/backup.sh).
+/backups/
+
 # Ignore env configuration files
 .env
 .envrc
