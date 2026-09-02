@@ -1,0 +1,23 @@
+# Gitleaks configuration — extends the built-in default ruleset.
+# Allowlisted paths contain placeholders or non-secrets that trip generic rules.
+# CI runs `gitleaks detect` against full history with this same config.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders and non-secret matches"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)Gemfile\.lock$''',
+  '''(^|/)db/schema\.rb$''',
+  '''(^|/)compose\.dev\.yml$''',
+  '''docs/.*\.md$''',
+  '''\.gitleaks\.toml$''',
+]
+# compose.dev.yml: POSTGRES_HOST_AUTH_METHOD=trust (local-only dev auth)
+# compose.yaml: ${POSTGRES_PASSWORD:?...} interpolation (not a literal secret)
+regexes = [
+  '''\$\{[A-Z_]+(:\?-[^}]*)?\}''',
+  '''POSTGRES_HOST_AUTH_METHOD(:\s*)?trust''',
+]
