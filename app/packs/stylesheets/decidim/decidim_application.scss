@@ -6,3 +6,104 @@
 // available at https://docs.decidim.org/en/develop/customize/styles.html#_tailwind_css
 //
 // By default this is empty.
+
+// =============================================================================
+// Print layer
+//
+// Decidim 0.31 core ships no print stylesheet (only qr.scss has @media print
+// rules), so a printed public contract record currently carries the site
+// header, footer and cookie banners. This layer fixes that with plain CSS
+// only — no imports, no @apply, no !important — so the host pack build
+// cannot fail on it.
+//
+// Every selector below was verified against the pinned gems
+// (decidim-core-0.31.7 / decidim-admin-0.31.7):
+//   header[role="banner"]     layouts/decidim/_wrapper.html.erb:16 — the whole
+//                             site header region (main bar, menu bar, admin
+//                             links, impersonation/omnipresent banners)
+//   #main-bar                 layouts/decidim/header/_main.html.erb:1 — the
+//                             header bar itself (defensive duplicate of the
+//                             same node)
+//   footer[role="contentinfo"] layouts/decidim/_wrapper.html.erb:40 — the
+//                             region wrapping the main footer
+//   .main-footer              layouts/decidim/footer/_main.html.erb:1 and
+//                             stylesheets/decidim/_footer.scss:2 (defensive)
+//   #dc-dialog-wrapper        app/cells/decidim/data_consent/dialog.erb:1 —
+//                             the cookie/consent banner
+//   [data-dataconsent-warning] layouts/decidim/_data_consent_warning.html.erb:1
+//                             — the JS-shown consent warning
+//   #dc-modal                 app/cells/decidim/data_consent/modal.erb:1 —
+//                             the consent settings dialog, if open
+//   .js-offline-message       layouts/decidim/_offline_banner.html.erb:1 —
+//                             the offline banner
+//   #timeoutModal             layouts/decidim/_timeout_modal.html.erb:2
+//                             (core) and decidim-admin
+//                             layouts/decidim/admin/_admin_timeout_modal.html.erb:4
+//                             — the session-timeout modal shares one id
+//
+// Deliberately NOT targeted (verified absent in 0.31.7): .main-header,
+// #admin-timeout-modal, .layout-footer.
+//
+// Cards are flat in 0.31 (_cards.scss has no box-shadow); the box-shadow
+// reset on .card/.card__list is defensive for utility-shadowed content.
+// =============================================================================
+@media print {
+  header[role="banner"],
+  #main-bar,
+  footer[role="contentinfo"],
+  .main-footer,
+  #dc-dialog-wrapper,
+  [data-dataconsent-warning],
+  #dc-modal,
+  .js-offline-message,
+  #timeoutModal {
+    display: none;
+  }
+
+  html,
+  body {
+    background-color: #ffffff;
+    color: #000000;
+  }
+
+  .layout-container,
+  .layout-1col {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  // Neutralize the responsive column insets of cols-6/8/10 layouts
+  // (stylesheets/decidim/_layout.scss:15-23), which would otherwise indent
+  // content at print-page widths (>= md).
+  .layout-1col > * {
+    grid-column: 1 / -1;
+  }
+
+  .card,
+  .card__list {
+    box-shadow: none;
+  }
+
+  // Pagination hygiene: keep cards, definition lists and table rows in one
+  // piece; keep headings glued to the content that follows them; let long
+  // tables flow across pages with their header row repeated instead of
+  // forcing the whole table onto one page (break-inside: avoid on table
+  // would risk losing rows).
+  .card,
+  dl,
+  tr {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+}
