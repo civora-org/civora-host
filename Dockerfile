@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder: toolchain + gems + assets ----
-FROM ruby:3.3.4-slim AS builder
+FROM ruby:4.0.0-slim AS builder
 
 ENV LANG=C.UTF-8 \
     BUNDLE_PATH=vendor/bundle \
@@ -41,7 +41,7 @@ RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile \
     && rm -rf node_modules tmp/* log/*
 
 # ---- Runtime: slim, non-root, no build tools ----
-FROM ruby:3.3.4-slim AS runtime
+FROM ruby:4.0.0-slim AS runtime
 
 ENV LANG=C.UTF-8 \
     RAILS_ENV=production \
