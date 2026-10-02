@@ -1,0 +1,19 @@
+# Host overrides of decidim-core 0.31.7 Slovak strings.
+#
+# Core ships "Vitajte na%{organization} ..." (no space before the
+# interpolation), which renders "Vitajte naCivora" in the footer, the
+# breadcrumb dropdown and the home hero. Rails loads the application's
+# locale files after the engines', so these keys win.
+#
+# The footer body is also replaced: core's text ("Budujme otvorenejšiu ...
+# Pridajte sa, zapojte sa a rozhodujte.") invites citizens to participate
+# and decide, which a contracts register does not offer.
+sk:
+  decidim:
+    pages:
+      home:
+        footer_sub_hero:
+          footer_sub_hero_body_html: Verejné zmluvy, ich dokumenty a zmeny na jednom mieste.<br /> Prehľadne a dohľadateľne pre každého.
+          footer_sub_hero_headline: Vitajte na platforme %{organization}.
+        hero:
+          welcome: Vitajte na platforme %{organization}!

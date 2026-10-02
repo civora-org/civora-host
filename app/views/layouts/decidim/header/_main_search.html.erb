@@ -1,0 +1,21 @@
+<%# Host override of decidim-core's topbar search (0.31.7 submits to the
+    global Decidim search, which indexes participatory spaces — none exist on
+    a contracts-only platform, so it always returned nothing). Civora routes
+    it to the contracts catalogue's own full-text filter (the engine's `q`
+    param: title + reference, case-insensitive) so the topbar search is the
+    catalogue search. %>
+<%= form_tag(decidim_contracts_sk.contracts_path, method: :get, id: "form-search_topbar") do %>
+  <%= text_field_tag(
+    :q,
+    nil,
+    id: "input-search",
+    class: "reset-defaults",
+    value: params[:q],
+    placeholder: t("decidim.contracts_sk.contracts.index.search_label"),
+    title: t("decidim.contracts_sk.contracts.index.search_label"),
+    "aria-label": t("decidim.contracts_sk.contracts.index.search_label")
+  ) %>
+  <button type="submit" aria-label="<%= t("decidim.search.term_input_placeholder") %>">
+    <%= icon "search-line" %>
+  </button>
+<% end %>
