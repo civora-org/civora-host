@@ -48,13 +48,20 @@
     </div>
   </nav>
 
-  <nav class="footer__nav" role="navigation" aria-label="<%= t("layouts.decidim.footer.help") %>">
-    <button type="button" id="panel-help-trigger" data-controls="panel-help" data-open-lg="true">
-      <span class="h4"><%= t("layouts.decidim.footer.help") %></span>
-      <%= icon "arrow-down-s-line" %>
-    </button>
-    <div id="panel-help" aria-hidden="true">
-      <%= cell("decidim/footer_topics", nil) %>
-    </div>
-  </nav>
+  <%# The Help column lists the organization's help-page topics marked
+      "show in footer". With none configured the cell renders nothing, and
+      the column would show a bare "Pomocník" heading — so it renders only
+      when there is something to list. %>
+  <% help_topics = cell("decidim/footer_topics", nil).to_s %>
+  <% if help_topics.present? %>
+    <nav class="footer__nav" role="navigation" aria-label="<%= t("layouts.decidim.footer.help") %>">
+      <button type="button" id="panel-help-trigger" data-controls="panel-help" data-open-lg="true">
+        <span class="h4"><%= t("layouts.decidim.footer.help") %></span>
+        <%= icon "arrow-down-s-line" %>
+      </button>
+      <div id="panel-help" aria-hidden="true">
+        <%= help_topics.html_safe %>
+      </div>
+    </nav>
+  <% end %>
 </div>
