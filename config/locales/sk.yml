@@ -1,0 +1,14 @@
+# Host overrides of decidim-core 0.31.7 Slovak strings.
+#
+# Core ships "Vitajte na%{organization} ..." (no space before the
+# interpolation), which renders "Vitajte naCivora" in the footer, the
+# breadcrumb dropdown and the home hero. Rails loads the application's
+# locale files after the engines', so these keys win.
+sk:
+  decidim:
+    pages:
+      home:
+        footer_sub_hero:
+          footer_sub_hero_headline: Vitajte na platforme %{organization}.
+        hero:
+          welcome: Vitajte na platforme %{organization}!
