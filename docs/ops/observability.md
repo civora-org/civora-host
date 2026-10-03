@@ -56,6 +56,7 @@ Rails app ──(PrometheusExporter::Middleware, per-request push)──▶ prom
 blackbox-exporter ◀──(scrape /probe)── Prometheus ◀──(scrape /metrics)── prometheus-exporter:9394
 blackbox-exporter ──(HTTP GET http://app:3000/up and /healthz)──▶ Rails app
 scripts/backup.sh ──(push civora_backup_last_success_unixtime)──▶ pushgateway:9091
+scheduler service ──(scripts/crz_sync_run.sh pushes civora_crz_sync_*{organization=<id>})──▶ pushgateway:9091
 ```
 
 - The middleware (`config/initializers/prometheus_exporter.rb`) activates only when `PROMETHEUS_EXPORTER_HOST` is set — development and tests are unaffected.
@@ -73,6 +74,8 @@ Rules in `observability/prometheus/rules.yml` implement the CI/CD plan threshold
 | `AppUptimeHigh`          | high     | uptime < 99% over 1h |
 | `HttpErrorRateHigh`      | high     | 5xx rate > 1% over 1h |
 | `BackupStale`            | high     | backup ping stale > 26h or never pushed (cron: nightly 03:15 `Europe/Bratislava`) |
+| `CrzSyncStale`           | high     | no successful CRZ sync for an organization for > 54h (two missed nights plus slack), or none ever pushed (scheduler runs nightly 03:30 `Europe/Bratislava`) |
+| `CrzSyncNeverSucceeded`  | warning  | an organization's sync is failing (`last_run_success == 0`) and has never succeeded, for 1h |
 | `DeepHealthCheckFailing` | warning  | `/healthz` probe failing (db/redis down while `/up` may still pass) |
 
 Routing (`observability/alertmanager/alertmanager.yml`): all severities go to the `alert-webhook` receiver whose URL comes from `ALERT_WEBHOOK_URL`. Alertmanager config files cannot read env vars, so `compose.observability.yml` substitutes the placeholder with `sed` at container start. **Fallback:** with `ALERT_WEBHOOK_URL` unset, the URL is a localhost blackhole — delivery attempts fail and are logged, and alerts stay visible in the Alertmanager UI (`http://127.0.0.1:9093`); that is the documented "log" fallback until a real receiver (e.g. a Slack/Mattermost bridge) is configured.
@@ -92,3 +95,27 @@ Run the stack, wait for Prometheus to pick up targets (`http://127.0.0.1:9090/ta
    `BackupStale` fires (~10m, the rule's `for`). The `absent()` branch can be tested on a fresh pushgateway (no push yet). Then verify the real path: `PUSHGATEWAY_URL=http://127.0.0.1:9091 scripts/backup.sh` and confirm the metric at `http://127.0.0.1:9091` shows the current time.
 5. **Error tracking:** `docker compose exec app bin/rails runner 'Sentry.capture_message("synthetic test event (civora-org/civora-platform#51)")'` — the event appears in the GlitchTip project within seconds.
 6. **Alert delivery:** set `ALERT_WEBHOOK_URL` to a listener (e.g. `nc -l 8081` or a webhook.site-style local receiver), trigger any alert, and confirm the POST arrives; `send_resolved: true` means you also get the resolution payload.
+
+## CRZ sync dead-man switch (civora-org/civora-platform#138)
+
+The `scheduler` service (base `compose.yaml`; runbook: `docs/ops/crz-sync.md`) syncs CRZ contracts nightly and pushes, per organization, to pushgateway (job `civora-crz-sync`, grouping label `organization=<id>`):
+
+- `civora_crz_sync_last_success_unixtime` — start time of the last successful sync (only touched on success; read by `CrzSyncStale`);
+- `civora_crz_sync_last_run_success` — `1`/`0` for the most recent run (informational; no alert yet).
+
+Pushes use HTTP POST so a failed run replaces only the `last_run_success` series and keeps the stored success timestamp. The push target is `CRZ_SYNC_PUSHGATEWAY_URL` (default `http://pushgateway:9091`, the in-network address). Without the observability overlay the push fails non-fatally and is logged.
+
+Synthetic dead-man test (use a throwaway organization label so real series stay untouched):
+
+```bash
+printf 'civora_crz_sync_last_success_unixtime 1000000000\n' | \
+  curl --data-binary @- http://127.0.0.1:9091/metrics/job/civora-crz-sync/organization/synthetic-test
+```
+
+`CrzSyncStale{organization="synthetic-test"}` goes pending, then fires after the rule's `for: 10m` (`http://127.0.0.1:9090/alerts`; it also reaches Alertmanager). To test the real "scheduler stopped" path, `docker compose stop scheduler` and wait > 54h, or push an old timestamp as above. Clean up with:
+
+```bash
+curl -X DELETE http://127.0.0.1:9091/metrics/job/civora-crz-sync/organization/synthetic-test
+```
+
+Caveats: pushgateway keeps metrics until deleted, so a removed organization's last timestamp goes stale and fires `CrzSyncStale` forever — delete its group with the `curl -X DELETE` form above. The `absent()` branch only fires when *no* organization has ever pushed; an organization that never succeeded has no timestamp series, which `CrzSyncNeverSucceeded` (warning, 1h) covers.

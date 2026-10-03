@@ -19,7 +19,9 @@ class AlertRulesTest < ActiveSupport::TestCase
     "DeepHealthCheckFailing" => { "severity" => "warning", "for" => "5m" },
     "HttpErrorRateCritical" => { "severity" => "critical", "for" => "2m" },
     "HttpErrorRateHigh" => { "severity" => "high", "for" => "5m" },
-    "BackupStale" => { "severity" => "high", "for" => "10m" }
+    "BackupStale" => { "severity" => "high", "for" => "10m" },
+    "CrzSyncStale" => { "severity" => "high", "for" => "10m" },
+    "CrzSyncNeverSucceeded" => { "severity" => "warning", "for" => "1h" }
   }.freeze
 
   test "rules.yml parses and contains exactly the documented alerts" do
@@ -63,6 +65,19 @@ class AlertRulesTest < ActiveSupport::TestCase
     # 25h across the October DST fallback) so a successful push never trips
     # the alert, while one missed night (elapsed up to ~48h) does.
     assert_equal 26 * 60 * 60, 93_600
+  end
+
+  test "CrzSyncStale is a 54h dead-man window with an absent() branch" do
+    crz_expr = expr("CrzSyncStale")
+    assert_includes crz_expr, "time() - civora_crz_sync_last_success_unixtime > 194400"
+    assert_includes crz_expr, "absent(civora_crz_sync_last_success_unixtime) == 1"
+    assert_equal 54 * 60 * 60, 194_400
+  end
+
+  test "CrzSyncNeverSucceeded flags organizations that failed but never pushed a success" do
+    assert_includes expr("CrzSyncNeverSucceeded").squish,
+                    "civora_crz_sync_last_run_success == 0 unless on(job, organization) " \
+                    "civora_crz_sync_last_success_unixtime"
   end
 
   test "prometheus.yml wires the rule file and the probe jobs the rules rely on" do

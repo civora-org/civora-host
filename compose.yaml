@@ -46,6 +46,46 @@ services:
       retries: 12
       start_period: 60s
 
+  # Nightly CRZ sync (civora-org/civora-platform#138, docs/ops/crz-sync.md):
+  # same image and wiring as `app`, no ports. Loops forever: sleep until
+  # 03:30 Europe/Bratislava (02:30 does not exist on the spring-forward
+  # night; the 03:15 backup runs first), run scripts/crz_sync_run.sh, repeat. The
+  # .dockerignore keeps /scripts out of the image, so the scripts are
+  # bind-mounted read-only from the checkout (like the observability configs).
+  # The crz-sync-state volume sits on /app/tmp (rails-owned in the image, so a
+  # fresh volume inherits the right ownership) and holds the per-organization
+  # last-success cursor. Metrics go to pushgateway when the observability
+  # overlay is active (non-fatal otherwise).
+  scheduler:
+    image: civora-host:latest
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      RAILS_ENV: production
+      TZ: Europe/Bratislava
+      GIT_REVISION: ${GIT_REVISION:-}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379/1
+      CRZ_SYNC_STATE_DIR: /app/tmp/crz-sync
+    command: ["sh", "scripts/crz_sync_scheduler.sh"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./scripts:/app/scripts:ro
+      - crz-sync-state:/app/tmp
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   db:
     image: postgres:17
     restart: unless-stopped
@@ -87,6 +127,7 @@ volumes:
   app-log: {}
   pg-data: {}
   redis-data: {}
+  crz-sync-state: {}
 
 secrets:
   github_token:

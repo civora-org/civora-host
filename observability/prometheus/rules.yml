@@ -81,3 +81,38 @@ groups:
         annotations:
           summary: "Backup has not succeeded for more than 26 hours"
           description: "No successful backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron job and scripts/backup.sh output."
+
+  - name: civora-crz-sync
+    rules:
+      # High: CRZ sync dead-man switch (civora-org/civora-platform#138).
+      # scripts/crz_sync_run.sh pushes civora_crz_sync_last_success_unixtime
+      # (grouping label organization=<id>) after every successful per-org
+      # sync; the scheduler service runs nightly at 03:30 Europe/Bratislava.
+      # Fires per organization when its last success is older than 54h (two
+      # missed nights plus slack), and globally when nothing was ever pushed.
+      # Failed runs push only civora_crz_sync_last_run_success=0, never the
+      # timestamp.
+      - alert: CrzSyncStale
+        expr: |
+          (time() - civora_crz_sync_last_success_unixtime > 194400)
+            or absent(civora_crz_sync_last_success_unixtime) == 1
+        for: 10m
+        labels:
+          severity: high
+        annotations:
+          summary: "CRZ sync has not succeeded for more than 54 hours"
+          description: "No successful CRZ sync reached pushgateway within the last 54h for organization {{ $labels.organization }} (or none was ever pushed). Check the scheduler service logs and docs/ops/crz-sync.md."
+
+      # Warning: an organization whose sync has failed since it was first
+      # seen has no success timestamp, so CrzSyncStale cannot see it
+      # (e.g. no admin with accepted terms, so no import actor).
+      - alert: CrzSyncNeverSucceeded
+        expr: |
+          civora_crz_sync_last_run_success == 0
+            unless on(job, organization) civora_crz_sync_last_success_unixtime
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "CRZ sync has never succeeded for an organization"
+          description: "The CRZ sync for organization {{ $labels.organization }} is failing and has never succeeded. Check the scheduler logs (for example a missing import actor) and docs/ops/crz-sync.md."
