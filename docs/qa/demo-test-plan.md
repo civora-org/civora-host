@@ -31,7 +31,7 @@ Record outcomes in the table at the end (Pass / Fail / Notes).
 
 **Seeded demo records** (reference → state): DEMO-2026-001 → draft (§6 publishes it), DEMO-2026-002 → rejected, DEMO-2026-003 → returned, DEMO-2026-004 → published, DEMO-2026-005 → rejected, DEMO-2026-006 → archived, DEMO-2026-007 → archived, DEMO-2026-008 → published (CRZ mirror, stale by design), DEMO-2026-009 → published (CRZ mirror, stale by design), DEMO-OTHER-001 → other organization (invisible). Plus several thousand imported CRZ records.
 
-> **Known leftovers from earlier runs:** `E2E Verify Zmluva` (E2E-2026-100), two `E2E …` documents on DEMO-2026-001 and amendment summaries `E2E prva verzia` on DEMO-2026-004 are test artefacts, not demo data. Clean them up before a sales demo or a screenshot session.
+> **DEMO-2026-010** ("Dodávka a montáž herných prvkov na detské ihriská", published) and the amendments on DEMO-2026-004 began as artefacts of an earlier E2E run and were turned into demo data on 2026-10-03. Any record, document or amendment still named "E2E…" or "test" is a leftover: clean it up before a sales demo or a screenshot session.
 
 > If a step says "record the id", open the record and copy the numeric id from the URL.
 
