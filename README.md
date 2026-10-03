@@ -11,7 +11,7 @@ The first release offered to municipalities is a **pilot**: one organization per
 | Component | Version |
 |---|---|
 | Decidim | 0.31.7 |
-| `decidim-contracts_sk` | **v1.3.0** (contract workflow, privacy-redaction gate, audit trail, CRZ mirror import, redesigned public catalogue and detail) |
+| `decidim-contracts_sk` | **v1.4.0** (contract workflow, privacy-redaction gate, audit trail, CRZ mirror import scoped to the organization's IČO, redesigned public catalogue and detail) |
 | Ruby / Postgres | 3.3.4 / 17 |
 
 What a pilot stack serves:
@@ -65,7 +65,7 @@ Smoke checks once running:
 The Gemfile pins the engine deterministically:
 
 ```ruby
-gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.3.0"
+gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.4.0"
 ```
 
 To hack on the engine locally, use Bundler's local override (never commit it):
@@ -73,7 +73,7 @@ To hack on the engine locally, use Bundler's local override (never commit it):
 ```bash
 bundle config set --local local.decidim-contracts_sk /path/to/decidim-contracts_sk
 # …and check the engine out at the pinned revision first:
-git -C /path/to/decidim-contracts_sk checkout v1.3.0
+git -C /path/to/decidim-contracts_sk checkout v1.4.0
 
 # when done:
 bundle config unset --local local.decidim-contracts_sk
@@ -89,7 +89,7 @@ Inside Docker, the same loop works with a personal, untracked `docker-compose.ov
 2. `bundle lock --update decidim-contracts_sk --conservative`; review the lock diff and run `bundler-audit`.
 3. Copy every **new** engine migration into `db/migrate/` **verbatim, keeping its original timestamp**, named `<timestamp>_<name>.decidim_contracts_sk.rb` (the vendored-migration pattern, excluded from rubocop):
    ```bash
-   git -C ../decidim-contracts_sk show v1.3.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
+   git -C ../decidim-contracts_sk show v1.4.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
    ```
    Do **not** use `bin/rails decidim_contracts_sk:install:migrations` here: it re-stamps the timestamps, and databases that already ran the engine migrations would run them again.
 4. Run the migrations and commit the regenerated `db/schema.rb`; its diff must contain only the engine's tables, columns and the version.
@@ -139,7 +139,7 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 - `DECIDIM_FORCE_SSL=0` is set because no TLS terminator exists yet; remove the override once a reverse proxy terminates HTTPS in front of `app`.
 - Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
 - Built for the host architecture only; multi-arch (buildx) is a follow-up.
-- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.3.0`) keeps the result deterministic.
+- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.4.0`) keeps the result deterministic.
 
 ## Customisations over Decidim
 
