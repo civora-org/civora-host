@@ -1,11 +1,13 @@
 GIT
   remote: https://github.com/civora-org/decidim-contracts_sk.git
-  revision: 8e0d89808379e7529141c9e957d6ae9fb96ccb3a
-  tag: v0.6.1
+  revision: 6a82bfd66116144adcd10329ff61daf8421c4c28
+  tag: v1.3.0
   specs:
-    decidim-contracts_sk (0.6.1)
+    decidim-contracts_sk (1.3.0)
       decidim-admin (~> 0.31.5)
       decidim-core (~> 0.31.5)
+      json (>= 2.0, < 3.0)
+      prawn (~> 2.5.0)
 
 GEM
   remote: https://rubygems.org/
@@ -107,7 +109,7 @@ GEM
       erubi (~> 1.4)
       parser (>= 2.4)
       smart_properties
-    bigdecimal (4.1.2)
+    bigdecimal (3.3.1)
     bindex (0.8.1)
     bootsnap (1.25.0)
       msgpack (~> 1.5)
@@ -667,12 +669,17 @@ GEM
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
+    pdf-core (0.10.0)
     pg (1.5.9)
     pg_search (2.3.8)
       activerecord (>= 7.2)
       activesupport (>= 7.2)
     pp (0.6.4)
       prettyprint
+    prawn (2.5.0)
+      matrix (~> 0.4)
+      pdf-core (~> 0.10.0)
+      ttfunk (~> 1.8)
     premailer (1.30.0)
       addressable
       css_parser (>= 1.19.0)
@@ -929,6 +936,8 @@ GEM
     timeout (0.6.1)
     trailblazer-option (0.1.2)
     tsort (0.2.0)
+    ttfunk (1.8.0)
+      bigdecimal (~> 3.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     uber (0.1.0)
@@ -1035,7 +1044,7 @@ CHECKSUMS
   bcrypt (3.1.22) sha256=1f0072e88c2d705d94aff7f2c5cb02eb3f1ec4b8368671e19112527489f29032
   benchmark (0.5.0) sha256=465df122341aedcb81a2a24b4d3bd19b6c67c1530713fd533f3ff034e419236c
   better_html (2.2.0) sha256=e68ab66ab09696b708333bbf35e8aa3c107500ba7892f528e2111624bdd8cf76
-  bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
+  bigdecimal (3.3.1) sha256=eaa01e228be54c4f9f53bf3cc34fe3d5e845c31963e7fcc5bedb05a4e7d52218
   bindex (0.8.1) sha256=7b1ecc9dc539ed8bccfc8cb4d2732046227b09d6f37582ff12e50a5047ceb17e
   bootsnap (1.25.0) sha256=41059e7d0f9cb4023a33465d095f64b913fc9d1b808d6524c307da945fbcffcf
   brakeman (7.1.2) sha256=6b04927710a2e7d13a72248b5d404c633188e02417f28f3d853e4b6370d26dce
@@ -1073,7 +1082,7 @@ CHECKSUMS
   decidim-blogs (0.31.7) sha256=95d7e1bf015ecedb37af2d6eef74d0f5e8a54c8c2eca82a454b6a0b56e197a2f
   decidim-budgets (0.31.7) sha256=8bba4759f5915eb5f4e18ca8dfae8671925c8dc20be47b1463c033b49e5361cd
   decidim-comments (0.31.7) sha256=57c679bc9951394e35e3e7b87ea57acb40d7fa360dca2aa33b3a6241547ecace
-  decidim-contracts_sk (0.6.1)
+  decidim-contracts_sk (1.3.0)
   decidim-core (0.31.7) sha256=dafa540b07bd77df62b9a235f0006cb4edf0c3b63a41dd33bf564b289b94a631
   decidim-debates (0.31.7) sha256=f767254dcc447d86c7ed5a16207065d180518668bdb9ae5a88c95d540900a4e6
   decidim-dev (0.31.7) sha256=45980f602353fd64a477e65e7d97e31332a1afea280372388f5d8cd05f5dda3c
@@ -1212,9 +1221,11 @@ CHECKSUMS
   parallel_tests (4.10.1) sha256=df05458c691462b210f7a41fc2651d4e4e8a881e8190e6d1e122c92c07735d70
   paranoia (3.0.1) sha256=cdb50c4c5c66f61fd1354f26371a8f0ca6d60156215bebffff42e135c495d083
   parser (3.3.12.0) sha256=21a6d7f755d5a24dfbdc6e6b772e4e879a52e7631a88bc5a3a134606052c9828
+  pdf-core (0.10.0) sha256=0a5d101e2063c01e3f941e1ee47cbb97f1adfc1395b58372f4f65f1300f3ce91
   pg (1.5.9) sha256=761efbdf73b66516f0c26fcbe6515dc7500c3f0aa1a1b853feae245433c64fdc
   pg_search (2.3.8) sha256=10e2d365d76ac432c79875c3ce17cf285c97c029548d84990b02406e52347c06
   pp (0.6.4) sha256=dfcb0fce700c41456265922884f9fe195d7fbb0674a3578e6c0f69588e82b570
+  prawn (2.5.0) sha256=f4e20e3b4f30bf5b9ae37dad15eb421831594553aa930b2391b0fa0a99c43cb6
   premailer (1.30.0) sha256=55f7cfa5099c18f3698a0b5548da448f402e8bf4cbc9410e32e37fb211078c21
   premailer-rails (1.12.0) sha256=c13815d161b9bc7f7d3d81396b0bb0a61a90fa9bd89931548bf4e537c7710400
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
@@ -1310,6 +1321,7 @@ CHECKSUMS
   timeout (0.6.1) sha256=78f57368a7e7bbadec56971f78a3f5ecbcfb59b7fcbb0a3ed6ddc08a5094accb
   trailblazer-option (0.1.2) sha256=20e4f12ea4e1f718c8007e7944ca21a329eee4eed9e0fa5dde6e8ad8ac4344a3
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
+  ttfunk (1.8.0) sha256=a7cbc7e489cc46e979dde04d34b5b9e4f5c8f1ee5fc6b1a7be39b829919d20ca
   tzinfo (2.0.6) sha256=8daf828cc77bcf7d63b0e3bdb6caa47e2272dcfaf4fbfe46f8c3a9df087a829b
   uber (0.1.0) sha256=5beeb407ff807b5db994f82fa9ee07cfceaa561dad8af20be880bc67eba935dc
   unicode-display_width (3.2.0) sha256=0cdd96b5681a5949cdbc2c55e7b420facae74c4aaf9a9815eee1087cb1853c42
