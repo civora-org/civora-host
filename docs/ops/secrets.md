@@ -32,7 +32,7 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 | `GITHUB_TOKEN` | Docker build (engine gem fetch) | `.env` | passed as BuildKit **secret mount**, never a build arg; not in image layers |
 | `ENGINE_READ_TOKEN` | CI (private gem checkout) | GitHub Actions secret | fine-grained PAT, Contents: read on the engine repo |
 | `STORAGE_PROVIDER` + `AWS_*` / `GCS_*` / `AZURE_*` | `config/storage.yml` | unset | dormant — only if object storage is adopted; then also `BACKUP_ENCRYPT_KEY` for encrypted offsite backups |
-| `REDIS_URL`, `PORT`, `RAILS_MAX_THREADS`, `RAILS_LOG_*`, `RAILS_ASSET_HOST` | config (not secret) | compose / env | listed for completeness |
+| `REDIS_URL`, `PORT`, `RAILS_MAX_THREADS`, `RAILS_LOG_*`, `RAILS_ASSET_HOST`, `DECIDIM_ORG_HOST` (seeded organization host, `db/seeds.rb`) | config (not secret) | compose / env | listed for completeness |
 | OmniAuth / Maps / Etherpad / VAPID families | future `config/initializers/decidim.rb` | — | not in the surface yet; will arrive via `Decidim::Env` when the initializer lands |
 
 Secrets are never shared between environments (see [environments.md](environments.md)).

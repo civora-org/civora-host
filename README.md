@@ -4,6 +4,24 @@ The [Civora](https://github.com/civora-org) host application: a [Decidim](https:
 
 Part of the Civora platform; issues are tracked in [`civora-org/civora-platform`](https://github.com/civora-org/civora-platform), not here.
 
+## Pilot release
+
+The first release offered to municipalities is a **pilot**: one organization per stack, Slovak UI, a 3-month run on real (public) contract data.
+
+| Component | Version |
+|---|---|
+| Decidim | 0.31.7 |
+| `decidim-contracts_sk` | **v1.3.0** (contract workflow, privacy-redaction gate, audit trail, CRZ mirror import, redesigned public catalogue and detail) |
+| Ruby / Postgres | 3.3.4 / 17 |
+
+What a pilot stack serves:
+
+- `/contracts`: public catalogue (search, register of published contracts with amounts) and contract detail (facts panel, parties, documents, version history, CRZ provenance notice);
+- `/contracts/admin/contracts`: the editor/reviewer workflow (draft → review → redaction confirmation → publish → amendments), the CRZ import and `/contracts/admin/audit_events`;
+- a Slovak-first Decidim shell: contracts-only header and footer, institutional palette and logo (see [Customisations](#customisations-over-decidim)).
+
+Before the first pilot deploy, work through the [pilot readiness checklist](#pilot-readiness-checklist).
+
 ## Requirements
 
 - Ruby **3.3.4** (see `.ruby-version`)
@@ -47,7 +65,7 @@ Smoke checks once running:
 The Gemfile pins the engine deterministically:
 
 ```ruby
-gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v0.6.0"
+gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.3.0"
 ```
 
 To hack on the engine locally, use Bundler's local override (never commit it):
@@ -55,13 +73,27 @@ To hack on the engine locally, use Bundler's local override (never commit it):
 ```bash
 bundle config set --local local.decidim-contracts_sk /path/to/decidim-contracts_sk
 # …and check the engine out at the pinned revision first:
-git -C /path/to/decidim-contracts_sk checkout v0.6.0
+git -C /path/to/decidim-contracts_sk checkout v1.3.0
 
 # when done:
 bundle config unset --local local.decidim-contracts_sk
 ```
 
 The local checkout **must** sit at the pinned revision, otherwise Bundler refuses — that is deliberate: the host always boots a reproducible engine version. Advancing the engine means cutting an engine release and bumping the tag here.
+
+Inside Docker, the same loop works with a personal, untracked `docker-compose.override.yml` that bind-mounts the engine checkout (read-only) at `/opt/decidim-contracts_sk` and swaps in a Gemfile using `path: "/opt/decidim-contracts_sk"`. Docker Compose loads an override file automatically, so run the real image with `docker compose -f compose.yaml …` (or pin `COMPOSE_FILE` in `.env`) whenever you are not developing the engine.
+
+### Upgrading the engine
+
+1. Cut the engine release (release-please PR in the engine repo) and bump `tag:` in the `Gemfile`.
+2. `bundle lock --update decidim-contracts_sk --conservative`; review the lock diff and run `bundler-audit`.
+3. Copy every **new** engine migration into `db/migrate/` **verbatim, keeping its original timestamp**, named `<timestamp>_<name>.decidim_contracts_sk.rb` (the vendored-migration pattern, excluded from rubocop):
+   ```bash
+   git -C ../decidim-contracts_sk show v1.3.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
+   ```
+   Do **not** use `bin/rails decidim_contracts_sk:install:migrations` here: it re-stamps the timestamps, and databases that already ran the engine migrations would run them again.
+4. Run the migrations and commit the regenerated `db/schema.rb`; its diff must contain only the engine's tables, columns and the version.
+5. Rebuild the image and walk §0–§3 of the [demo test plan](docs/qa/demo-test-plan.md).
 
 ## CI
 
@@ -77,6 +109,8 @@ Production-baseline container stack (tracked as `civora-org/civora-platform#48`)
 - **`compose.yaml`** — prod-baseline stack: `app` + Postgres 17 + Redis (required by the production ActionCable config). Healthchecks on all three services (`/up` for the app). Migrations and the idempotent seed run on boot via `bin/docker-entrypoint`.
 - **`compose.dev.yml`** — overlay restoring the bind-mount dev loop:
   `docker compose -f compose.yaml -f compose.dev.yml up`
+
+> A personal `docker-compose.override.yml` (see [Working on the engine](#working-on-the-engine-alongside-this-app)) is picked up by every plain `docker compose` command. Pass `-f compose.yaml` explicitly, or pin `COMPOSE_FILE` in `.env`, to be sure you run the built image.
 
 ### Build & run (clean machine)
 
@@ -105,7 +139,38 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 - `DECIDIM_FORCE_SSL=0` is set because no TLS terminator exists yet; remove the override once a reverse proxy terminates HTTPS in front of `app`.
 - Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
 - Built for the host architecture only; multi-arch (buildx) is a follow-up.
-- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v0.6.1`) keeps the result deterministic.
+- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.3.0`) keeps the result deterministic.
+
+## Customisations over Decidim
+
+The engine stays markup-only; everything that makes the shell look and read like Civora lives here:
+
+- **Visual identity**: organization colours, logo and the print layer — [`docs/appearance.md`](docs/appearance.md) and `app/packs/stylesheets/decidim/decidim_application.scss`.
+- **Header** (`app/views/layouts/decidim/header/_main_links_desktop.html.erb`): Help and **Zmluvy** (the catalogue) instead of Meetings and Activity, which carry no content on a contracts-only platform.
+- **Topbar search** (`app/views/layouts/decidim/header/_main_search.html.erb`): submits to the catalogue's own `q` filter; Decidim's global search indexes participatory spaces, which this platform has none of.
+- **Footer** (`app/views/layouts/decidim/footer/_main_links.html.erb`): Resources is Open Data only; the Help column renders only when help topics are configured for the footer.
+- **Locale** (`config/locales/sk.yml`): fixes decidim-core 0.31.7's "Vitajte na%{organization}" (missing space) and replaces the participation call to action in the footer with contracts-register copy.
+- **Homepage hero** (`db/seeds.rb`): welcome text and a "Prezrieť zmluvy" button into `/contracts`, en + sk, idempotent.
+
+These override decidim-core 0.31.7 partials by path: re-check them on every Decidim upgrade.
+
+## Demo and QA
+
+- **Demo data:** `bin/rails "decidim_contracts_sk:seed_demo[<organization_id>]"` seeds fictional contracts in every lifecycle state (idempotent). Never run it on a pilot database.
+- **Demo admin:** `contracts-admin@example.org`; the seed sets a random password. Reset it locally and keep it in `tmp/demo-admin-credentials.txt` (gitignored) — never in a committed file.
+- **Manual test plan:** [`docs/qa/demo-test-plan.md`](docs/qa/demo-test-plan.md), the click-through for every release. Test records use the `MANUAL-2026-` prefix and are archived at the end of a run, because the demo database is also the sales demo and the source of the civora.sk screenshots ([`civora-org/civora-site`](https://github.com/civora-org/civora-site)).
+
+## Pilot readiness checklist
+
+A pilot stack is a fresh database on its own host — never a copy of the demo database.
+
+1. **Host and TLS:** a domain for the municipality and a reverse proxy terminating HTTPS in front of `app`; then remove `DECIDIM_FORCE_SSL: "0"` from `compose.yaml` (see [Current limitations](#current-limitations)).
+2. **Environment:** `.env` from `.env.example` with fresh secrets (`openssl rand -hex 64` / `-hex 16`), `DECIDIM_ORG_HOST=<pilot domain>` so the seeded organization answers on it, and SMTP configured (password resets and invitations need mail).
+3. **First boot:** `scripts/deploy.sh` (backup-gated build, migrate, seed, smoke). Then `docker compose exec app bin/rails decidim_system:create_admin` for the system admin, and in `/system`: organization name, **default locale `sk`** (the seed defaults to `en`), the municipality's logo and colours.
+4. **People:** invite the municipality's admins from `/admin` → Participants → Admins. Organization admins hold both engine roles (editor and reviewer) by default; narrow that with `Decidim::ContractsSk.role_resolver` in an initializer if the municipality separates the roles.
+5. **Content:** import the municipality's existing CRZ contracts (`bin/rails "decidim_contracts_sk:crz_import:sync[<organization_id>,<SINCE ISO8601>]"`), schedule it nightly, and add the terms-of-service page and a privacy notice in `/admin` → Pages.
+6. **Operations:** observability overlay on (`COMPOSE_FILE` in `.env`), backups scheduled and one restore drill logged ([`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md)), alert webhook set.
+7. **Acceptance:** walk the [demo test plan](docs/qa/demo-test-plan.md) on the pilot stack with `MANUAL-2026-` records, then archive them.
 
 ## Operations
 
