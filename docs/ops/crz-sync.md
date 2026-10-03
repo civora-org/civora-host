@@ -34,6 +34,13 @@ docker compose exec scheduler cat /app/tmp/crz-sync/org-1   # last success (unix
 
 The manual pass uses the same cursor and pushes the same metrics. A first run with a wide window against the CRZ backlog is large (thousands of records) and can hit the ekosystem rate window (60 requests); the run then stops early and exits non-zero, with pages already applied kept. A rerun restarts from the same `since` (the sync does not resume from its pagination cursor; resume is a possible follow-up), so it can hit the same limit again: start with a narrow `CRZ_SYNC_INITIAL_SINCE` (for example 1 day ago) and widen it step by step, deleting the `.seed` file between steps while no success is recorded.
 
+**Before the first pass, set `CRZ_ICO_ORG_<id>`** for every organization (see Environment variables) — without it the organization's sync is refused. A stack that synced before the IČO scope existed (engine < v1.4.0) holds other municipalities' contracts; back up, then prune them once:
+
+```bash
+docker compose exec scheduler bin/rails "decidim_contracts_sk:crz_import:prune_out_of_scope[1]"            # dry run: count
+docker compose exec -e CONFIRM=1 scheduler bin/rails "decidim_contracts_sk:crz_import:prune_out_of_scope[1]"  # delete
+```
+
 **After the first deploy, run one manual pass** (`docker compose exec scheduler sh scripts/crz_sync_run.sh`) to confirm the actor, source access and pushgateway wiring instead of waiting for 03:30.
 
 ### Reading logs and exit codes
@@ -59,6 +66,7 @@ Collisions (a CRZ record matching an existing manually authored contract) are ne
 
 | Var | Default | Purpose |
 | --- | --- | --- |
+| `CRZ_ICO_ORG_<id>` | **required**, unset | The organization's IČO (8 digits, spaces allowed). Only contracts with this IČO on either party are imported; an organization without it fails its sync (exit 1, `CrzSyncNeverSucceeded`) instead of importing the national feed. Read by `config/initializers/contracts_sk.rb` (civora-org/civora-platform#145) |
 | `CRZ_SYNC_INITIAL_SINCE` | 7 days ago | ISO8601 cursor seed, global: applies to every organization without state |
 | `CRZ_SYNC_PUSHGATEWAY_URL` | `http://pushgateway:9091` | Dead-man push target; failures are non-fatal |
 | `ACTOR_EMAIL` | first admin with accepted terms | Login email of the audit/authorship user (read by the rake task; set it in `.env`) |
