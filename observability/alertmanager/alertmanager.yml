@@ -1,38 +1,53 @@
 # Alertmanager routing (civora-org/civora-platform#51).
 #
-# The webhook URL is not configurable via env in Alertmanager itself, so this
-# file is mounted as a template (.yml.tmpl) and compose.observability.yml
-# substitutes __ALERT_WEBHOOK_URL__ with $ALERT_WEBHOOK_URL at start. When
-# ALERT_WEBHOOK_URL is unset the fallback blackhole URL (nothing listens on
-# the localhost webhook port) is used instead: delivery attempts fail and are
-# logged, and alerts remain visible in the Alertmanager UI — the "log"
-# fallback until a real receiver is configured.
+# Two receivers: Telegram for urgent alerts (critical/high — push to the
+# maintainer's phone) and e-mail for every severity (the full record).
+#
+# Alertmanager config files cannot read env vars, so this file is mounted as a
+# template (.yml.tmpl) and observability/alertmanager/entrypoint.sh
+# substitutes the __PLACEHOLDERS__ from .env at container start. Unset values
+# fall back to inert defaults: delivery attempts fail and are logged, and
+# alerts stay browsable in the Alertmanager UI — the "log" fallback until the
+# receivers are configured (see docs/ops/observability.md).
 global:
   resolve_timeout: 5m
+  smtp_smarthost: '__ALERT_SMTP_SMARTHOST__'
+  smtp_from: '__ALERT_EMAIL_FROM__'
+  smtp_auth_username: '__ALERT_SMTP_USERNAME__'
+  smtp_auth_password: '__ALERT_SMTP_PASSWORD__'
+  smtp_require_tls: true
+
+# Message templates (templates/telegram.tmpl), mounted read-only.
+templates:
+  - /etc/alertmanager/templates/*.tmpl
 
 route:
-  # Catch-all: unmatched alerts end at the logging fallback.
-  receiver: fallback-log
+  # Catch-all: unknown severities still end up in the mailbox.
+  receiver: email
   group_by: [alertname]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
   routes:
-    # All known severities go to the webhook receiver; downstream consumers
-    # filter on the severity label (critical / high / warning).
+    # Urgent: Telegram, then fall through so the alert is also e-mailed.
+    - matchers:
+        - severity =~ "critical|high"
+      receiver: telegram
+      continue: true
     - matchers:
         - severity =~ "critical|high|warning"
-      receiver: alert-webhook
+      receiver: email
 
 receivers:
-  - name: alert-webhook
-    webhook_configs:
-      - url: __ALERT_WEBHOOK_URL__
+  - name: telegram
+    telegram_configs:
+      - bot_token: '__ALERT_TELEGRAM_BOT_TOKEN__'
+        chat_id: __ALERT_TELEGRAM_CHAT_ID__
+        parse_mode: HTML
+        message: '{{ template "civora.telegram.message" . }}'
         send_resolved: true
 
-  - name: fallback-log
-    webhook_configs:
-      # Blackhole: delivery fails by design, attempts are logged by
-      # Alertmanager; alerts stay browsable in its UI.
-      - url: http://127.0.0.1:5001/
-        send_resolved: false
+  - name: email
+    email_configs:
+      - to: '__ALERT_EMAIL_TO__'
+        send_resolved: true

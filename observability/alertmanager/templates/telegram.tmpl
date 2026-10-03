@@ -1,0 +1,34 @@
+{{/*
+  Telegram message for the "telegram" receiver (parse_mode HTML).
+  One block per alert: severity marker, bold summary, description, the
+  labels that are not already shown, and the start (or resolve) time in
+  Europe/Bratislava. Rendered offline with:
+    amtool template render --template.glob=... --template.text='{{ template "civora.telegram.message" . }}'
+*/}}
+{{ define "civora.telegram.severity" -}}
+{{ if eq .Status "resolved" }}✅ RESOLVED
+{{- else if eq .Labels.severity "critical" }}🔴 CRITICAL
+{{- else if eq .Labels.severity "high" }}🟠 HIGH
+{{- else if eq .Labels.severity "warning" }}🟡 WARNING
+{{- else }}⚪ {{ .Labels.severity | toUpper }}{{ end }}
+{{- end }}
+
+{{ define "civora.telegram.alert" -}}
+{{ template "civora.telegram.severity" . }} · <code>{{ .Labels.alertname }}</code>
+<b>{{ or .Annotations.summary .Labels.alertname }}</b>
+{{- with .Annotations.description }}
+{{ . }}{{ end }}
+{{- range .Labels.SortedPairs }}{{ if and (ne .Name "alertname") (ne .Name "severity") (ne .Name "job") (ne .Name "instance") (ne .Name "summary") }}
+• {{ .Name }}: <code>{{ .Value }}</code>{{ end }}{{ end }}
+{{ if eq .Status "resolved" -}}
+🕐 {{ (.StartsAt | tz "Europe/Bratislava").Format "02.01. 15:04" }} → {{ (.EndsAt | tz "Europe/Bratislava").Format "15:04" }} ({{ humanizeDuration (.EndsAt.Sub .StartsAt).Seconds }})
+{{- else -}}
+🕐 since {{ (.StartsAt | tz "Europe/Bratislava").Format "02.01. 15:04" }}
+{{- end }}
+{{- end }}
+
+{{ define "civora.telegram.message" -}}
+{{ range $i, $alert := .Alerts }}{{ if $i }}
+
+{{ end }}{{ template "civora.telegram.alert" $alert }}{{ end }}
+{{- end }}

@@ -29,6 +29,7 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 | `DATABASE_USERNAME` / `DATABASE_PASSWORD` | `config/database.yml` | `.env` (prod), unset locally | local dev uses peer auth |
 | `DATABASE_URL` | `config/database.yml` (production block) | unset | only if moving to a URL-style DB config |
 | `SMTP_ADDRESS` / `SMTP_PORT` / `SMTP_AUTHENTICATION` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_DOMAIN` | production mailer (`config/environments/production.rb`) | **unset — production mail is not configured yet** | wire at first real deploy; see `.env.example` |
+| `ALERT_TELEGRAM_BOT_TOKEN` / `ALERT_SMTP_PASSWORD` (+ non-secret `ALERT_TELEGRAM_CHAT_ID`, `ALERT_EMAIL_TO`, `ALERT_SMTP_USERNAME`) | Alertmanager delivery (`observability/alertmanager/entrypoint.sh`) | `.env` | SMTP password is a Google app password; rotate the bot token via `@BotFather` → `/revoke` |
 | `GITHUB_TOKEN` | Docker build (engine gem fetch) | `.env` | passed as BuildKit **secret mount**, never a build arg; not in image layers |
 | `ENGINE_READ_TOKEN` | CI (private gem checkout) | GitHub Actions secret | fine-grained PAT, Contents: read on the engine repo |
 | `STORAGE_PROVIDER` + `AWS_*` / `GCS_*` / `AZURE_*` | `config/storage.yml` | unset | dormant — only if object storage is adopted; then also `BACKUP_ENCRYPT_KEY` for encrypted offsite backups |
