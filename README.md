@@ -92,6 +92,8 @@ Inside Docker, the same loop works with a personal, untracked `docker-compose.ov
    git -C ../decidim-contracts_sk show v1.4.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
    ```
    Do **not** use `bin/rails decidim_contracts_sk:install:migrations` here: it re-stamps the timestamps, and databases that already ran the engine migrations would run them again.
+
+   The four-eyes release (the first after v1.4.0, [civora-org/civora-platform#123](https://github.com/civora-org/civora-platform/issues/123)) ships `20261003000001_add_submitted_by_to_decidim_contracts_sk_contracts.rb`. It adds the nullable `decidim_submitted_by_id` column and backfills it from the audit trail (the actor of each contract's latest `contract.submit` row), so contracts already in review stay blocked for their submitter. The migration is reversible.
 4. Run the migrations and commit the regenerated `db/schema.rb`; its diff must contain only the engine's tables, columns and the version.
 5. Rebuild the image and walk §0–§3 of the [demo test plan](docs/qa/demo-test-plan.md).
 
@@ -157,7 +159,7 @@ These override decidim-core 0.31.7 partials by path: re-check them on every Deci
 ## Demo and QA
 
 - **Demo data:** `bin/rails "decidim_contracts_sk:seed_demo[<organization_id>]"` seeds fictional contracts in every lifecycle state (idempotent). Never run it on a pilot database.
-- **Demo admin:** `contracts-admin@example.org`; the seed sets a random password. Reset it locally and keep it in `tmp/demo-admin-credentials.txt` (gitignored) — never in a committed file.
+- **Demo admins:** `contracts-admin@example.org` and `contracts-editor@example.org`; the seed sets random passwords. With the four-eyes rule (engine releases after v1.4.0), one admin cannot judge their own submission. Submit as `contracts-editor@example.org` and return, approve or reject as `contracts-admin@example.org`. Reset them locally and keep them in `tmp/demo-admin-credentials.txt` (gitignored) — never in a committed file.
 - **Manual test plan:** [`docs/qa/demo-test-plan.md`](docs/qa/demo-test-plan.md), the click-through for every release. Test records use the `MANUAL-2026-` prefix and are archived at the end of a run, because the demo database is also the sales demo and the source of the civora.sk screenshots ([`civora-org/civora-site`](https://github.com/civora-org/civora-site)).
 
 ## Pilot readiness checklist
@@ -167,7 +169,11 @@ A pilot stack is a fresh database on its own host — never a copy of the demo d
 1. **Host and TLS:** a domain for the municipality and a reverse proxy terminating HTTPS in front of `app`; then remove `DECIDIM_FORCE_SSL: "0"` from `compose.yaml` (see [Current limitations](#current-limitations)).
 2. **Environment:** `.env` from `.env.example` with fresh secrets (`openssl rand -hex 64` / `-hex 16`), `DECIDIM_ORG_HOST=<pilot domain>` so the seeded organization answers on it, and SMTP configured (password resets and invitations need mail).
 3. **First boot:** `scripts/deploy.sh` (backup-gated build, migrate, seed, smoke). Then `docker compose exec app bin/rails decidim_system:create_admin` for the system admin, and in `/system`: organization name, **default locale `sk`** (the seed defaults to `en`), the municipality's logo and colours.
-4. **People:** invite the municipality's admins from `/admin` → Participants → Admins. Organization admins hold both engine roles (editor and reviewer) by default; narrow that with `Decidim::ContractsSk.role_resolver` in an initializer if the municipality separates the roles.
+4. **People:** invite the municipality's admins from `/admin` → Participants → Admins. Organization admins hold both engine roles (editor and reviewer) by default; narrow that with `Decidim::ContractsSk.role_resolver` in an initializer if the municipality separates the roles. From the four-eyes engine release onwards ([civora-org/civora-platform#123](https://github.com/civora-org/civora-platform/issues/123), the first release after v1.4.0), the person who submits a contract for review can never return, approve or reject it. The pilot therefore needs **at least two people with engine roles**. A one-person municipality must opt out explicitly in `config/initializers/contracts_sk.rb`; its self-reviews are then audited as `contract.approve_self` / `return_self` / `reject_self`:
+   ```ruby
+   Decidim::ContractsSk.allow_self_review = true
+   ```
+   Set this only once `Gemfile` pins that release: v1.4.0 does not define the setting and would fail to boot.
 5. **Content:** import the municipality's existing CRZ contracts (`bin/rails "decidim_contracts_sk:crz_import:sync[<organization_id>,<SINCE ISO8601>]"`), schedule it nightly, and add the terms-of-service page and a privacy notice in `/admin` → Pages.
 6. **Operations:** observability overlay on (`COMPOSE_FILE` in `.env`), backups scheduled and one restore drill logged ([`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md)), alert webhook set.
 7. **Acceptance:** walk the [demo test plan](docs/qa/demo-test-plan.md) on the pilot stack with `MANUAL-2026-` records, then archive them.
