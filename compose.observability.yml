@@ -14,7 +14,8 @@
 #   GLITCHTIP_DOMAIN        public base URL of GlitchTip (default localhost)
 #   SENTRY_DSN              app error reporting → GlitchTip project DSN
 #   PUSHGATEWAY_URL         backup dead-man ping target (scripts/backup.sh)
-#   ALERT_WEBHOOK_URL       where Alertmanager delivers critical/high alerts
+#   ALERT_TELEGRAM_*        urgent (critical/high) alerts → Telegram bot
+#   ALERT_EMAIL_* / ALERT_SMTP_*  all alerts → e-mail
 #
 # Only the ports needed for local testing are published, bound to 127.0.0.1
 # (GlitchTip UI, Prometheus UI, Alertmanager UI, pushgateway for the host-side
@@ -137,18 +138,22 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:9093:9093"
-    # Alertmanager config files cannot read env vars, so the URL placeholder
-    # in the mounted template is substituted here (busybox sed) at start.
-    # "$$url" (escaped dollar) keeps compose from eating the shell variable;
-    # the sed escape guards against '&' (sed "whole match") in real URLs.
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        url="$(printf '%s' "${ALERT_WEBHOOK_URL:-http://127.0.0.1:5001/}" | sed 's/[\\&|]/\\&/g')"
-        sed "s|__ALERT_WEBHOOK_URL__|$$url|g" /etc/alertmanager/alertmanager.yml.tmpl > /tmp/alertmanager.yml
-        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
+    # Alertmanager config files cannot read env vars, so the mounted
+    # template is rendered by entrypoint.sh at start (placeholders → env).
+    # Only the alerting vars are passed in — not the whole .env.
+    entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
+    environment:
+      ALERT_TELEGRAM_BOT_TOKEN: ${ALERT_TELEGRAM_BOT_TOKEN:-}
+      ALERT_TELEGRAM_CHAT_ID: ${ALERT_TELEGRAM_CHAT_ID:-}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-}
+      ALERT_SMTP_SMARTHOST: ${ALERT_SMTP_SMARTHOST:-}
+      ALERT_SMTP_USERNAME: ${ALERT_SMTP_USERNAME:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
     volumes:
       - ./observability/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml.tmpl:ro
+      - ./observability/alertmanager/entrypoint.sh:/etc/alertmanager/entrypoint.sh:ro
+      - ./observability/alertmanager/templates:/etc/alertmanager/templates:ro
     logging:
       driver: json-file
       options:
