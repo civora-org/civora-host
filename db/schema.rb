@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_260_926_000_002) do
+ActiveRecord::Schema[7.2].define(version: 20_261_003_000_002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_trgm"
@@ -586,6 +586,10 @@ ActiveRecord::Schema[7.2].define(version: 20_260_926_000_002) do
     t.datetime "redaction_confirmed_at"
     t.string "review_reason", limit: 1000
     t.datetime "reviewed_at"
+    t.bigint "decidim_submitted_by_id"
+    t.datetime "crz_filed_at"
+    t.date "crz_published_on"
+    t.string "crz_filing_reason", limit: 1000
     t.index ["decidim_author_id"], name: "index_decidim_contracts_sk_contracts_on_decidim_author_id"
     t.index %w(decidim_organization_id reference), name: "idx_contracts_sk_contracts_on_organization_id_and_reference", unique: true
     t.index %w(decidim_organization_id source source_id), name: "idx_contracts_sk_contracts_on_organization_id_and_source_id"
