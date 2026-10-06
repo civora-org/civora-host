@@ -160,7 +160,9 @@ The engine stays markup-only; everything that makes the shell look and read like
 - **Locale** (`config/locales/sk.yml`): fixes decidim-core 0.31.7's "Vitajte na%{organization}" (missing space) and replaces the participation call to action in the footer with contracts-register copy.
 - **Homepage hero** (`db/seeds.rb`): welcome text and a "Prezrieť zmluvy" button into `/contracts`, en + sk, idempotent.
 
-These override decidim-core 0.31.7 partials by path: re-check them on every Decidim upgrade.
+- **Participation link** (civora-org/civora-platform#130, #131): contracts can be linked to Accountability results and Budgets projects, and the linked published contracts are listed on those Decidim pages. Organization-scoped resolver in `app/lib/participation_link_resolver.rb`, wired in `config/initializers/contracts_sk.rb`; two view overrides (`app/views/decidim/accountability/results/_project.html.erb`, `app/views/decidim/budgets/projects/show.html.erb`). To link in the admin: edit a contract at `/contracts/admin/contracts`, **Links** card, pick the target type and enter the numeric id from the result or project URL. See [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
+
+These override decidim-core 0.31.7 partials by path: re-check them on every Decidim upgrade. The two participation-link views are decidim-accountability / decidim-budgets 0.31.7 copies; a test fails when they drift from the installed gems.
 
 ## Demo and QA
 
@@ -190,6 +192,7 @@ Secrets handling, environments, backup/restore, logging, observability, incident
 
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
+- [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
 - [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 - [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules

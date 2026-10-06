@@ -1,0 +1,131 @@
+<%# Civora host override of decidim-budgets 0.31.7 app/views/decidim/budgets/projects/show.html.erb.
+    Verbatim gem copy plus ONE added line (marked "Civora"): the engine's related-contracts
+    block (civora-org/civora-platform#131, decidim-contracts_sk docs/related-contracts.md).
+    On a Decidim upgrade: diff this file against the gem and re-apply the line. %>
+<% if @focus_mode %>
+  <% content_for :focus_mode, true %>
+  <% content_for :focus_mode_return_path, budget_projects_path(budget) %>
+<% end %>
+
+<% add_decidim_meta_tags(
+  title: translated_attribute(project.title),
+  description: translated_attribute(project.description),
+  resource: project,
+  url: resource_locator([project.budget, project]).url
+) %>
+
+<%
+edit_link(
+  resource_locator([project.budget, project]).edit,
+  :update,
+  :project,
+  project:
+)
+%>
+
+<%= append_javascript_pack_tag "decidim_budgets" %>
+<%= append_stylesheet_pack_tag "decidim_budgets" %>
+
+<%= render partial: "exit_modal" %>
+
+<div id="project-item">
+  <%= render layout: "layouts/decidim/shared/layout_item", locals: { back_path: budget_projects_path(budget) } do %>
+    <section class="layout-main__section layout-main__heading">
+      <%= cell("decidim/budgets/budget_information_modal", budget) %>
+      <%= cell("decidim/budgets/limit_announcement", budget) %>
+
+      <% if component_settings.geocoding_enabled? && project.geocoded? %>
+        <div class="static-map__container">
+          <%= render partial: "decidim/shared/static_map", locals: { icon_name: "projects", geolocalizable: project } %>
+        </div>
+      <% end %>
+      <%= cell("decidim/budgets/project_selected_status", project) %>
+
+      <div class="layout-author">
+        <div class="relative flex items-center justify-center w-full">
+          <div class="w-10/12 flex items-center gap-4">
+            <h1 class="h2 decorator">
+              <%= decidim_sanitize translated_attribute project.title %>
+            </h1>
+          </div>
+          <%= render "decidim/shared/resource_actions", resource: project, skip_report: true %>
+        </div>
+      </div>
+    </section>
+    <section class="layout-main__section">
+      <div class="editor-content">
+        <%= decidim_sanitize_editor_admin translated_attribute project.description %>
+      </div>
+    </section>
+    <section class="layout-main__section">
+      <% if tabs.any? %>
+        <div class="mt-8" data-controller="accordion" data-multiselectable="false" data-collapsible="false">
+          <ul class="tab-x-container">
+            <% tabs.each_with_index do |tab, i| %>
+              <li>
+                <button id="trigger-<%= tab[:id] %>" class="tab-x" data-controls="panel-<%= tab[:id] %>" data-open="<%= "true" if i.zero? %>">
+                  <%= icon tab[:icon], class: "text-gray fill-current" %><%= tab[:text] %>
+                </button>
+              </li>
+            <% end %>
+          </ul>
+
+          <% panels.each do |panel| %>
+            <div id="panel-<%= panel[:id] %>" class="py-8 panel-container">
+              <%= send(panel[:method], *panel[:args]) %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <%= cell("decidim/tags", project) %>
+    <%= render partial: "decidim/contracts_sk/related_contracts/list", locals: { resource: project } %> <%# Civora %>
+
+    <section class="layout-main__section layout-main__buttons" data-buttons>
+      <%= cell "decidim/comments_button", nil %>
+
+      <div class="ml-auto lg:ml-0">
+        <%= cell "decidim/share_widget", project %>
+      </div>
+    </section>
+
+    <% content_for :aside do %>
+      <section class="layout-aside__section">
+        <span class="budget__definition-data__title">
+          <%= t("budget", scope: "decidim.budgets.projects.show") %>
+        </span>
+        <div class="budget__definition-data__number">
+          <%= budget_to_currency_with_html project.budget_amount %>
+        </div>
+      </section>
+
+      <% if show_votes_count? %>
+        <section class="layout-aside__section">
+          <span class="budget__definition-data__title">
+            <%= t("votes", scope: "decidim.budgets.projects.show") %>
+          </span>
+          <div class="budget__definition-data__number" data-spec-project-votes>
+            <%= cell "decidim/budgets/project_votes_count", project %>
+          </div>
+        </section>
+      <% end %>
+
+      <% if current_order_checked_out? && resource_added?(project) %>
+        <section class="mt-4">
+          <%= cell("decidim/budgets/project_voted_hint", project, class: "margin-left-1") %>
+        </section>
+      <% end %>
+    <% end %>
+    <% content_for :item_footer do %>
+      <%= comments_for project, polymorphic: [project.budget] %>
+      <ul class="metadata__container layout-main__section" data-metadata-footer>
+        <%= content_tag :li, resource_reference(project), class: "metadata__item" %>
+      </ul>
+    <% end %>
+  <% end %>
+
+  <% if current_user&.ephemeral? %>
+    <div class="h-40 bg-transparent"></div>
+  <% end %>
+</div>
