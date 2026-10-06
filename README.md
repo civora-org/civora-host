@@ -193,6 +193,7 @@ Secrets handling, environments, backup/restore, logging, observability, incident
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
 - [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
+- [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) — idempotent demo seed `civora:demo:proposal_to_contract`: proposal, budget project, result and the linked contract (#132)
 - [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 - [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules
