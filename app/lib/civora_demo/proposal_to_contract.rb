@@ -157,9 +157,30 @@ module CivoraDemo
       scope.detect { |record| sk(record.title) == title }
     end
 
+    # Decidim writes the default proposal states (title and the "accepted
+    # because" announcement) only in Decidim.default_locale (decidim-proposals
+    # 0.31.7 lib/decidim/proposals.rb:89-110), so a Slovak page shows
+    # "Accepted". Fill every organization locale from Decidim's own i18n.
+    STATE_KEYS = {
+      "evaluating" => %w(evaluating proposal_in_evaluation_reason),
+      "accepted" => %w(accepted proposal_accepted_reason),
+      "rejected" => %w(rejected proposal_rejected_reason)
+    }.freeze
+
+    def translate_proposal_states!(component, organization)
+      Decidim::Proposals::ProposalState.where(component: component, token: STATE_KEYS.keys).find_each do |state|
+        title_key, reason_key = STATE_KEYS.fetch(state.token)
+        locales = organization.available_locales.map(&:to_s)
+        title = locales.index_with { |l| I18n.with_locale(l) { I18n.t(title_key, scope: "decidim.proposals.answers") } }
+        reason = locales.index_with { |l| I18n.with_locale(l) { I18n.t(reason_key, scope: "decidim.proposals.proposals.show") } }
+        state.update!(title: state.title.to_h.merge(title), announcement_title: state.announcement_title.to_h.merge(reason))
+      end
+    end
+
     def ensure_proposal!(space, resident)
       component = ensure_component!(space, :proposals, "Návrhy obyvateľov")
       Decidim::Proposals.create_default_states!(component, nil, with_traceability: false) unless Decidim::Proposals::ProposalState.exists?(component: component)
+      translate_proposal_states!(component, space.organization)
 
       proposal = find_by_title(Decidim::Proposals::Proposal.where(component: component), TITLES[:proposal])
       return proposal if proposal
