@@ -11,7 +11,7 @@ The first release offered to municipalities is a **pilot**: one organization per
 | Component | Version |
 |---|---|
 | Decidim | 0.31.7 |
-| `decidim-contracts_sk` | **v1.6.0** (contract workflow, four-eyes review, privacy-redaction gate, audit trail, CRZ deadline tracking and filing confirmation, admin home, CRZ mirror import scoped to the organization's IČO; public catalogue with filters and sorting, supplier pages, statistics, CSV/JSON open-data export and an Atom feed) |
+| `decidim-contracts_sk` | **v1.7.1** (contract workflow, four-eyes review, privacy-redaction gate, audit trail, CRZ deadline tracking and filing confirmation, admin home, CRZ mirror import scoped to the organization's IČO, workflow notifications, role assignment, internal notes, contract templates, spreadsheet import; public results-first catalogue with filters and sorting, supplier pages, statistics, CSV/JSON open-data export, Atom feed, e-mail search alerts, SEO meta and sitemap; a Decidim component for participatory spaces) |
 | Ruby / Postgres | 3.3.4 / 17 |
 
 What a pilot stack serves:
@@ -65,7 +65,7 @@ Smoke checks once running:
 The Gemfile pins the engine deterministically:
 
 ```ruby
-gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.6.0"
+gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.7.1"
 ```
 
 To hack on the engine locally, use Bundler's local override (never commit it):
@@ -73,7 +73,7 @@ To hack on the engine locally, use Bundler's local override (never commit it):
 ```bash
 bundle config set --local local.decidim-contracts_sk /path/to/decidim-contracts_sk
 # …and check the engine out at the pinned revision first:
-git -C /path/to/decidim-contracts_sk checkout v1.6.0
+git -C /path/to/decidim-contracts_sk checkout v1.7.1
 
 # when done:
 bundle config unset --local local.decidim-contracts_sk
@@ -89,11 +89,11 @@ Inside Docker, the same loop works with a personal, untracked `docker-compose.ov
 2. `bundle lock --update decidim-contracts_sk --conservative`; review the lock diff and run `bundler-audit`.
 3. Copy every **new** engine migration into `db/migrate/` **verbatim, keeping its original timestamp**, named `<timestamp>_<name>.decidim_contracts_sk.rb` (the vendored-migration pattern, excluded from rubocop):
    ```bash
-   git -C ../decidim-contracts_sk show v1.6.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
+   git -C ../decidim-contracts_sk show v1.7.1:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
    ```
    Do **not** use `bin/rails decidim_contracts_sk:install:migrations` here: it re-stamps the timestamps, and databases that already ran the engine migrations would run them again.
 
-   v1.6.0 ships no migrations. Its new public pages live under the engine mount: `/contracts/statistics`, `/contracts/suppliers/<IČO>`, `/contracts/export.csv` / `.json` (the organisation's own published records only) and `/contracts/feed.atom`. Optionally add a sentence and a link to the export on Decidim's Open Data page (suggested text in the engine's `docs/open-data.md`).
+   v1.7.1 ships four migrations, copied verbatim with their original timestamps: `20261006000001` (`decidim_contracts_sk_user_roles`), `20261006000002` (`decidim_contracts_sk_notes`), `20261006000003` (`decidim_contracts_sk_templates`), `20261006000004` (`decidim_contracts_sk_subscriptions`). Host follow-ups that come with it: schedule the e-mail alerts digest task and configure SMTP (engine `docs/search-alerts.md`); reference `/contracts/sitemap.xml` from `robots.txt`; optionally wire the related-contracts block into Decidim result/project pages (engine `docs/related-contracts.md`, civora-org/civora-platform#130/#131) and add the "Zmluvy" component to a participatory space (engine `docs/decidim-component.md`).
 
    v1.5.0 ships two migrations, both reversible:
    - `20261003000001_add_submitted_by_to_decidim_contracts_sk_contracts.rb` (four-eyes, [civora-org/civora-platform#123](https://github.com/civora-org/civora-platform/issues/123)) adds the nullable `decidim_submitted_by_id` column and backfills it from the audit trail (the actor of each contract's latest `contract.submit` row), so contracts already in review stay blocked for their submitter.
@@ -147,7 +147,7 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 - `DECIDIM_FORCE_SSL=0` is set because no TLS terminator exists yet; remove the override once a reverse proxy terminates HTTPS in front of `app`.
 - Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
 - Built for the host architecture only; multi-arch (buildx) is a follow-up.
-- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.6.0`) keeps the result deterministic.
+- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.7.1`) keeps the result deterministic.
 
 ## Customisations over Decidim
 

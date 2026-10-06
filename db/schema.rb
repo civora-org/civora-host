@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_261_003_000_002) do
+ActiveRecord::Schema[7.2].define(version: 20_261_006_000_004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_trgm"
@@ -610,6 +610,14 @@ ActiveRecord::Schema[7.2].define(version: 20_261_003_000_002) do
     t.index ["contract_id"], name: "idx_contracts_sk_documents_on_contract_id"
   end
 
+  create_table "decidim_contracts_sk_notes", force: :cascade do |t|
+    t.bigint "contract_id", null: false
+    t.bigint "decidim_author_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.index %w(contract_id id), name: "idx_contracts_sk_notes_on_contract_and_id"
+  end
+
   create_table "decidim_contracts_sk_parties", force: :cascade do |t|
     t.bigint "contract_id", null: false
     t.string "role", null: false
@@ -619,6 +627,44 @@ ActiveRecord::Schema[7.2].define(version: 20_261_003_000_002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index %w(contract_id role), name: "idx_contracts_sk_parties_on_contract_id_and_role"
+  end
+
+  create_table "decidim_contracts_sk_subscriptions", force: :cascade do |t|
+    t.bigint "decidim_organization_id", null: false
+    t.string "email", limit: 254, null: false
+    t.json "filter_params", null: false
+    t.string "locale", null: false
+    t.datetime "confirmed_at"
+    t.datetime "last_notified_at"
+    t.string "token_digest", limit: 64, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index %w(decidim_organization_id email), name: "idx_contracts_sk_subscriptions_on_organization_id_and_email"
+    t.index ["token_digest"], name: "idx_contracts_sk_subscriptions_on_token_digest", unique: true
+  end
+
+  create_table "decidim_contracts_sk_templates", force: :cascade do |t|
+    t.bigint "decidim_organization_id", null: false
+    t.string "name", null: false
+    t.string "title_pattern"
+    t.text "subject_matter"
+    t.string "currency", default: "EUR", null: false
+    t.string "object_party_name"
+    t.string "object_party_ico"
+    t.string "object_party_address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index %w(decidim_organization_id name), name: "idx_contracts_sk_templates_on_organization_id_and_name", unique: true
+  end
+
+  create_table "decidim_contracts_sk_user_roles", force: :cascade do |t|
+    t.bigint "decidim_user_id", null: false
+    t.bigint "decidim_organization_id", null: false
+    t.string "role", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decidim_organization_id"], name: "idx_contracts_sk_user_roles_on_organization_id"
+    t.index %w(decidim_user_id decidim_organization_id role), name: "index_decidim_contracts_sk_user_roles_unique", unique: true
   end
 
   create_table "decidim_debates_debates", id: :serial, force: :cascade do |t|
@@ -1927,7 +1973,10 @@ ActiveRecord::Schema[7.2].define(version: 20_261_003_000_002) do
   add_foreign_key "decidim_contracts_sk_audit_events", "decidim_users"
   add_foreign_key "decidim_contracts_sk_contract_links", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_documents", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_notes", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_parties", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_user_roles", "decidim_organizations"
+  add_foreign_key "decidim_contracts_sk_user_roles", "decidim_users"
   add_foreign_key "decidim_debates_debates", "decidim_scopes"
   add_foreign_key "decidim_editor_images", "decidim_organizations"
   add_foreign_key "decidim_editor_images", "decidim_users", column: "decidim_author_id"
