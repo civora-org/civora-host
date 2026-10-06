@@ -1,0 +1,8 @@
+# Demo only (mounted by compose.demo.yml): keep search engines away.
+header X-Robots-Tag "noindex, nofollow, noarchive"
+
+@robots path /robots.txt
+respond @robots <<TXT
+	User-agent: *
+	Disallow: /
+	TXT 200

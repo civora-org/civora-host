@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Builds and (re)starts the public demo stack, seeds demo data and smoke-tests
+# it over HTTPS (docs/ops/demo-server.md). Run as the deploy user from the
+# repository root; idempotent, safe to re-run.
+#
+#   bin/demo-deploy [--pull] [--skip-build] [--reset]
+#
+#   --pull        git pull --ff-only before building
+#   --skip-build  reuse the existing image (nightly reset)
+#   --reset       DROP the database and uploads first, then reseed (demo only)
+#
+# The demo admin password is generated once and written ONLY to
+# $DEMO_CREDENTIALS_FILE (default ~/.civora-demo-admin, mode 600). It is never
+# printed, logged or put in .env. This script never uses `set -x`.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+PULL=0 SKIP_BUILD=0 RESET=0
+for arg in "$@"; do
+  case "$arg" in
+    --pull) PULL=1 ;;
+    --skip-build) SKIP_BUILD=1 ;;
+    --reset) RESET=1 ;;
+    *) echo "usage: bin/demo-deploy [--pull] [--skip-build] [--reset]" >&2; exit 2 ;;
+  esac
+done
+
+log() { printf '==> %s\n' "$*"; }
+die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+TOKEN_FILE="${CIVORA_TOKEN_FILE:-$HOME/.config/civora-demo/github-token}"
+CRED_FILE="${DEMO_CREDENTIALS_FILE:-$HOME/.civora-demo-admin}"
+LOCK_FILE="${HOME}/.civora-demo.lock"
+
+command -v docker >/dev/null || die "docker not found; run bin/demo-provision first"
+docker compose version >/dev/null 2>&1 || die "docker compose plugin not found"
+
+exec 9>"$LOCK_FILE"
+flock -n 9 || die "another bin/demo-deploy is running"
+
+env_get() { grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2- || true; }
+env_set() { # KEY VALUE; only used with hex values
+  if grep -qE "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else printf '%s=%s\n' "$1" "$2" >>.env; fi
+}
+
+# --- 1. .env ---------------------------------------------------------------
+log "1/8 Environment"
+if [ ! -f .env ]; then
+  install -m 600 .env.demo.example .env
+  echo "    created .env from .env.demo.example"
+fi
+chmod 600 .env
+[ -n "$(env_get SECRET_KEY_BASE)" ] || { env_set SECRET_KEY_BASE "$(openssl rand -hex 64)"; echo "    generated SECRET_KEY_BASE"; }
+[ -n "$(env_get POSTGRES_PASSWORD)" ] || { env_set POSTGRES_PASSWORD "$(openssl rand -hex 16)"; echo "    generated POSTGRES_PASSWORD"; }
+
+[ "$(env_get DEMO_MODE)" = "1" ] || die "DEMO_MODE=1 is missing in .env: refusing to run (this script is for the demo only)"
+SITE="$(env_get SITE_ADDRESS)"
+ACME="$(env_get ACME_EMAIL)"
+ADMIN_EMAIL="$(env_get DEMO_ADMIN_EMAIL)"
+[ -n "$SITE" ] || die "SITE_ADDRESS is empty in .env"
+case "$ACME" in "" | you@example.org) die "set ACME_EMAIL in .env (Let's Encrypt contact)" ;; esac
+[ -n "$ADMIN_EMAIL" ] || die "DEMO_ADMIN_EMAIL is empty in .env"
+if grep -Eq '^(CRZ_ICO_ORG_|SMTP_)' .env; then
+  die ".env sets CRZ_ICO_ORG_* or SMTP_*: not allowed on the demo (no CRZ sync, no real mail)"
+fi
+if [ -n "${CRZ_ICO_ORG_1:-}" ]; then die "CRZ_ICO_ORG_* is set in the shell: not allowed on the demo"; fi
+
+# The repositories are public; a token is only used when the file exists (private forks).
+GITHUB_TOKEN=""
+[ ! -s "$TOKEN_FILE" ] || GITHUB_TOKEN="$(cat "$TOKEN_FILE")"
+export GITHUB_TOKEN
+
+if ! getent hosts "$SITE" >/dev/null 2>&1; then
+  echo "    WARNING: $SITE does not resolve yet; Let's Encrypt needs the A record. Continuing."
+fi
+
+export COMPOSE_FILE="${COMPOSE_FILE:-$(env_get COMPOSE_FILE)}"
+[ -n "$COMPOSE_FILE" ] || COMPOSE_FILE="compose.yaml:compose.tls.yml:compose.demo.yml"
+export COMPOSE_FILE
+case "$COMPOSE_FILE" in *compose.demo.yml*) ;; *) die "COMPOSE_FILE must include compose.demo.yml" ;; esac
+dc() { docker compose "$@"; }
+
+# --- 2. code ---------------------------------------------------------------
+log "2/8 Code"
+if [ "$PULL" = "1" ]; then
+  if [ -n "$GITHUB_TOKEN" ]; then
+    auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+    env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+      "GIT_CONFIG_VALUE_0=Authorization: Basic ${auth}" git pull --ff-only >/dev/null
+  else
+    git pull --ff-only >/dev/null
+  fi
+fi
+GIT_REVISION="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+export GIT_REVISION
+echo "    revision $GIT_REVISION"
+
+# --- 3. build --------------------------------------------------------------
+if [ "$SKIP_BUILD" = "1" ]; then
+  log "3/8 Build skipped"
+else
+  log "3/8 Build image (first build: several minutes)"
+  dc build app
+fi
+
+# --- 4. reset (optional) ---------------------------------------------------
+if [ "$RESET" = "1" ]; then
+  log "4/8 Reset: dropping the demo database and uploads"
+  dc up -d --wait db redis
+  dc stop app >/dev/null
+  dc run --rm --no-deps -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 app ./bin/rails db:drop db:create
+  dc run --rm --no-deps app sh -c 'rm -rf /app/storage/* /app/tmp/demo-mails'
+else
+  log "4/8 Reset not requested"
+fi
+
+# --- 5. start --------------------------------------------------------------
+log "5/8 Start the stack (database is created and migrated on app boot)"
+dc up -d --wait --wait-timeout 900
+dc exec -T app ./bin/rails db:migrate
+
+# --- 6. demo data ----------------------------------------------------------
+log "6/8 Demo organization, admin and data"
+if [ ! -s "$CRED_FILE" ]; then
+  umask 077
+  { printf 'email=%s\n' "$ADMIN_EMAIL"; printf 'password=%s\n' "$(openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 28)"; } >"$CRED_FILE"
+  chmod 600 "$CRED_FILE"
+  echo "    generated the demo admin credentials: $CRED_FILE (mode 600)"
+fi
+DEMO_ADMIN_PASSWORD="$(grep '^password=' "$CRED_FILE" | cut -d= -f2-)"
+[ -n "$DEMO_ADMIN_PASSWORD" ] || die "no password in $CRED_FILE"
+export DEMO_ADMIN_PASSWORD
+export DEMO_ADMIN_EMAIL="$ADMIN_EMAIL"
+
+ORG_ID="$(dc exec -T app ./bin/rails runner 'print Decidim::Organization.find_by!(host: ENV.fetch("DECIDIM_ORG_HOST")).id' 2>/dev/null | tail -n1)"
+[[ "$ORG_ID" =~ ^[0-9]+$ ]] || die "could not determine the organization id (got '$ORG_ID')"
+
+dc exec -T -e DEMO_ADMIN_EMAIL -e DEMO_ADMIN_PASSWORD app ./bin/rails "civora:demo:prepare_server[$ORG_ID]"
+dc exec -T app ./bin/rails "decidim_contracts_sk:seed_demo[$ORG_ID]"
+dc exec -T -e DEMO_BASE_URL="https://$SITE" app ./bin/rails "civora:demo:proposal_to_contract[$ORG_ID]"
+unset DEMO_ADMIN_PASSWORD
+
+# --- 7. smoke --------------------------------------------------------------
+log "7/8 Smoke checks over HTTPS (certificate issuance can take a minute)"
+code_of() { curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$@" || true; }
+expect() { # URL EXPECTED_CODE [curl args...]
+  local url="$1" want="$2" got=""
+  shift 2
+  for _ in $(seq 1 36); do
+    got="$(code_of "$@" "$url")"
+    [ "$got" = "$want" ] && { echo "    $got $url"; return 0; }
+    sleep 5
+  done
+  die "$url returned '${got:-no response}', expected $want. Check DNS (A record) and: docker compose logs caddy app"
+}
+expect "https://$SITE/up" 200
+expect "https://$SITE/contracts" 200
+got="$(code_of "http://$SITE/")"
+case "$got" in 301 | 302 | 307 | 308) echo "    $got http://$SITE/ redirects to https" ;; *) die "http://$SITE/ returned $got, expected a redirect" ;; esac
+curl -fsS --max-time 15 "https://$SITE/robots.txt" | grep -q '^Disallow: /$' || die "robots.txt does not disallow crawling"
+echo "    robots.txt disallows crawling"
+
+# --- 8. summary ------------------------------------------------------------
+log "8/8 Done"
+echo "    Site:   https://$SITE/contracts"
+echo "    Admin:  https://$SITE/admin  (e-mail $ADMIN_EMAIL)"
+echo "    Password: read it on the server from $CRED_FILE (it is not shown here)"

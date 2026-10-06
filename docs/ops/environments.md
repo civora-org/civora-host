@@ -12,7 +12,7 @@ The app runs in three defined environments. Staging is **defined but deliberatel
 | Secrets source | `.env` (local only) | CI env / service defaults | reserved: `.env.staging` | `.env` via compose |
 | Mail | letter_opener (Decidim default) | test adapter | — | `SMTP_*` (**unconfigured — see secrets.md**) |
 | Storage | `./storage` (bind mount) | tmp | — | `app-storage` named volume, `STORAGE_PROVIDER=local` |
-| Force SSL | n/a | n/a | — | `DECIDIM_FORCE_SSL=0` **temporary** until a TLS terminator exists |
+| Force SSL | n/a | n/a | — | `DECIDIM_FORCE_SSL=0` in the base file; the `compose.tls.yml` overlay (Caddy) sets it to 1 |
 
 ## Parity notes
 
