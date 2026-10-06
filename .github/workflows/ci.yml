@@ -56,6 +56,10 @@ jobs:
         with:
           ruby-version: '3.3.4'
           bundler-cache: true
+      # Decidim's full-page renders (the related-contracts view overrides)
+      # resolve image variants, which need ImageMagick on the runner.
+      - name: Install ImageMagick
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
       - name: Prepare test database
         run: DISABLE_SPRING=1 bin/rails db:create db:schema:load
       - name: Run tests
