@@ -186,7 +186,7 @@ A pilot stack is a fresh database on its own host — never a copy of the demo d
 
 ## Operations
 
-Secrets handling, environments, backup/restore, logging and observability are documented under `docs/ops/`:
+Secrets handling, environments, backup/restore, logging, observability, incident response and security updates are documented under `docs/ops/`:
 
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
@@ -194,6 +194,8 @@ Secrets handling, environments, backup/restore, logging and observability are do
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 - [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules
 - [`docs/ops/observability.md`](docs/ops/observability.md) — self-hosted error tracking (GlitchTip), metrics (Prometheus), alerting (Alertmanager), backup dead-man switch, synthetic-failure tests
+- [`docs/ops/incident-response.md`](docs/ops/incident-response.md) — roles, severity and response targets, evidence preservation, GDPR art. 33 breach notification (sk templates)
+- [`docs/ops/security-updates.md`](docs/ops/security-updates.md) — patch cadence, emergency patches, review of the upstream-blocked advisories in `.bundler-audit.yml`
 
 Operational scripts:
 
