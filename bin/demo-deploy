@@ -66,8 +66,9 @@ if grep -Eq '^(CRZ_ICO_ORG_|SMTP_)' .env; then
 fi
 if [ -n "${CRZ_ICO_ORG_1:-}" ]; then die "CRZ_ICO_ORG_* is set in the shell: not allowed on the demo"; fi
 
-[ -s "$TOKEN_FILE" ] || die "GitHub token file $TOKEN_FILE missing (bin/demo-provision writes it)"
-GITHUB_TOKEN="$(cat "$TOKEN_FILE")"
+# The repositories are public; a token is only used when the file exists (private forks).
+GITHUB_TOKEN=""
+[ ! -s "$TOKEN_FILE" ] || GITHUB_TOKEN="$(cat "$TOKEN_FILE")"
 export GITHUB_TOKEN
 
 if ! getent hosts "$SITE" >/dev/null 2>&1; then
@@ -83,9 +84,13 @@ dc() { docker compose "$@"; }
 # --- 2. code ---------------------------------------------------------------
 log "2/8 Code"
 if [ "$PULL" = "1" ]; then
-  auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
-  env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
-    "GIT_CONFIG_VALUE_0=Authorization: Basic ${auth}" git pull --ff-only >/dev/null
+  if [ -n "$GITHUB_TOKEN" ]; then
+    auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+    env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
+      "GIT_CONFIG_VALUE_0=Authorization: Basic ${auth}" git pull --ff-only >/dev/null
+  else
+    git pull --ff-only >/dev/null
+  fi
 fi
 GIT_REVISION="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 export GIT_REVISION

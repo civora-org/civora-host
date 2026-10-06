@@ -2,18 +2,16 @@
 # Turns a fresh Debian/Ubuntu VPS into a host ready for the public demo
 # (docs/ops/demo-server.md). Run once as root; safe to re-run.
 #
-#   sudo GITHUB_TOKEN=<fine-grained read token> SITE_ADDRESS=demo.civora.sk \
-#        ACME_EMAIL=you@example.org bash demo-provision
+#   SITE_ADDRESS=demo.civora.sk ACME_EMAIL=you@example.org bash demo-provision
 #
 # What it does: installs Docker (official repo) and the compose plugin, creates
 # the `deploy` user, enables UFW (22, 80, 443), unattended security upgrades and
-# a swap file on small machines, stores the GitHub token outside the repository
-# (mode 600), clones the host repository and prepares .env from .env.demo.example.
+# a swap file on small machines, clones the host repository and prepares .env from .env.demo.example.
 # It does not deploy: the next step is `bin/demo-deploy` as the deploy user.
 #
-# Environment (all optional except GITHUB_TOKEN on the first run):
-#   GITHUB_TOKEN        read access to civora-org/civora-host AND
-#                       civora-org/decidim-contracts_sk (the private engine gem)
+# Environment (all optional; the repositories are public):
+#   GITHUB_TOKEN        only for private forks: read access to the host repo and
+#                       the engine repo
 #   SITE_ADDRESS        public host name, written to .env
 #   ACME_EMAIL          Let's Encrypt contact, written to .env
 #   DEPLOY_USER         default: deploy
@@ -113,31 +111,32 @@ else
   echo "    not needed or already present"
 fi
 
-log "7/9 GitHub token (outside the repository, mode 600)"
+log "7/9 Optional GitHub token (private forks only)"
 TOKEN_DIR="$DEPLOY_HOME/.config/civora-demo"
 TOKEN_FILE="$TOKEN_DIR/github-token"
-install -d -m 700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$DEPLOY_HOME/.config" "$TOKEN_DIR"
 if [ -n "${GITHUB_TOKEN:-}" ]; then
+  install -d -m 700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$DEPLOY_HOME/.config" "$TOKEN_DIR"
   (umask 077 && printf '%s\n' "$GITHUB_TOKEN" >"$TOKEN_FILE")
   chown "$DEPLOY_USER:$DEPLOY_USER" "$TOKEN_FILE"
   chmod 600 "$TOKEN_FILE"
   echo "    stored in $TOKEN_FILE"
-elif [ -s "$TOKEN_FILE" ]; then
-  echo "    keeping the existing $TOKEN_FILE"
 else
-  die "GITHUB_TOKEN is required on the first run (read access to civora-host and decidim-contracts_sk)"
+  echo "    none (public repositories)"
 fi
 
 log "8/9 Clone the host repository"
 APP_DIR="$DEPLOY_HOME/civora-host"
 if [ -d "$APP_DIR/.git" ]; then
   echo "    already cloned: $APP_DIR"
-else
+elif [ -s "$TOKEN_FILE" ]; then
   auth="$(printf 'x-access-token:%s' "$(cat "$TOKEN_FILE")" | base64 -w0)"
   runuser -u "$DEPLOY_USER" -- env \
     GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraHeader \
     "GIT_CONFIG_VALUE_0=Authorization: Basic ${auth}" \
     git clone --branch "$REPO_REF" "$REPO_URL" "$APP_DIR" >/dev/null
+  echo "    cloned $REPO_URL ($REPO_REF) with the token"
+else
+  runuser -u "$DEPLOY_USER" -- git clone --branch "$REPO_REF" "$REPO_URL" "$APP_DIR" >/dev/null
   echo "    cloned $REPO_URL ($REPO_REF) to $APP_DIR"
 fi
 

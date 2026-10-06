@@ -31,28 +31,21 @@ About 5 to 10 EUR per month: a 2 vCPU / 4 GB VPS in the EU (for example Hetzner 
 
 Create an `A` record `demo.civora.sk` (or your name) to the VPS IPv4 address (add `AAAA` for IPv6 if you want it). Wait until `dig +short demo.civora.sk` shows the address. Without it Let's Encrypt cannot issue the certificate and the deploy smoke check fails.
 
-### 3. Create a read-only GitHub token
+### 3. No GitHub token needed
 
-The host repository and the engine gem are private. Create a **fine-grained personal access token** in GitHub, Settings, Developer settings:
-
-- Resource owner: `civora-org`, repositories: `civora-host` and `decidim-contracts_sk`.
-- Permission: Contents, **read-only**. Nothing else.
-- Short expiry (for example 90 days).
-
-It is the same kind of token as CI's `ENGINE_READ_TOKEN`. The image build reads it as a BuildKit secret (`secrets: github_token` in `compose.yaml`), never as a build argument, and it is not stored in any image layer. On the server it lives in `~deploy/.config/civora-demo/github-token` (mode 600), **outside** the repository directory, so it is neither in the build context nor in the app container's environment.
+`civora-org/civora-host` and `civora-org/decidim-contracts_sk` are public, so cloning and the image build (the engine gem is fetched from GitHub) work anonymously. A token is only for **private forks**: a fine-grained personal access token with Contents read-only on both repositories. Pass it as `GITHUB_TOKEN` to `bin/demo-provision`; it is stored in `~deploy/.config/civora-demo/github-token` (mode 600), outside the repository directory, and the build reads it as an optional BuildKit secret (never a build argument, never in a layer or in the app environment).
 
 ### 4. Provision the server (once, as root)
 
-The script is in the private repository, so copy it from your checkout:
+Fetch the script from the public repository (or clone it and `scp` it):
 
 ```bash
-scp bin/demo-provision root@<VPS-IP>:
 ssh root@<VPS-IP>
-GITHUB_TOKEN=<the token> SITE_ADDRESS=demo.civora.sk ACME_EMAIL=you@example.org \
-  INSTALL_RESET_CRON=0 bash demo-provision
+curl -fsSLO https://raw.githubusercontent.com/civora-org/civora-host/main/bin/demo-provision
+SITE_ADDRESS=demo.civora.sk ACME_EMAIL=you@example.org INSTALL_RESET_CRON=0 bash demo-provision
 ```
 
-(Type the token on the server only; do not paste it into chat, tickets or shell history you share.) The script is idempotent. It installs Docker and the compose plugin from Docker's official apt repository, creates the `deploy` user (in the `docker` group, with your SSH keys), enables UFW with only ports 22, 80 and 443, turns on unattended security upgrades, adds a 2 GB swap file because the image build needs the headroom on a 4 GB machine, stores the token, clones the repository to `~deploy/civora-host` and creates `.env` from `.env.demo.example` (mode 600).
+(Add `GITHUB_TOKEN=...` only for a private fork.) The script is idempotent. It installs Docker and the compose plugin from Docker's official apt repository, creates the `deploy` user (in the `docker` group, with your SSH keys), enables UFW with only ports 22, 80 and 443, turns on unattended security upgrades, adds a 2 GB swap file because the image build needs the headroom on a 4 GB machine, clones the repository to `~deploy/civora-host` and creates `.env` from `.env.demo.example` (mode 600).
 
 ### 5. Fill `.env`
 
@@ -142,7 +135,7 @@ cd ~/civora-host && docker compose down -v --rmi local
 sudo rm -f /etc/cron.d/civora-demo-reset
 ```
 
-To stop paying, **delete the VPS in the provider console** (stopping it still bills), remove the DNS record, and revoke the GitHub token (Settings, Developer settings, Fine-grained tokens).
+To stop paying, **delete the VPS in the provider console** (stopping it still bills), remove the DNS record, and revoke the GitHub token if you created one for a private fork.
 
 ## Troubleshooting
 
@@ -150,6 +143,6 @@ To stop paying, **delete the VPS in the provider console** (stopping it still bi
 |---|---|
 | Smoke check never gets a 200 over https | DNS A record missing or not yet propagated; ports 80/443 closed at the provider's firewall; `docker compose logs caddy` shows the ACME error |
 | `docker: permission denied` as deploy | Log out and in once after provisioning (docker group) |
-| Build fails at `bundle install` with a git auth error | The token lacks read access to `decidim-contracts_sk`, or expired |
+| Build fails at `bundle install` with a git auth error | Network problem reaching github.com; on a private fork, the token lacks read access to the engine repo or expired |
 | App stays unhealthy | `docker compose logs app`; usually a wrong `POSTGRES_PASSWORD` after the volume was created with another one (`docker compose down -v` on a demo is fine) |
 | Build killed (exit 137) | Out of memory: check `swapon --show`, or use a 4 GB plan |

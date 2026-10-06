@@ -23,10 +23,13 @@ WORKDIR /app
 
 # Gemfile layer first for docker-layer caching.
 COPY Gemfile Gemfile.lock ./
-# The engine gem lives in a private repo; the token is injected as a BuildKit
-# secret mount (not a build arg) and never persisted to any layer.
-RUN --mount=type=secret,id=github_token,required=true \
-    printf '[url "https://x-access-token:%s@github.com/"]\n\tinsteadOf = https://github.com/\n' "$(cat /run/secrets/github_token)" > /tmp/gitconfig \
+# The engine gem is fetched from a public GitHub repo, so no token is needed.
+# An optional token (BuildKit secret mount, never persisted to a layer) is only
+# used when non-empty, for private forks.
+RUN --mount=type=secret,id=github_token,required=false \
+    if [ -s /run/secrets/github_token ]; then \
+      printf '[url "https://x-access-token:%s@github.com/"]\n\tinsteadOf = https://github.com/\n' "$(cat /run/secrets/github_token)" > /tmp/gitconfig; \
+    else : > /tmp/gitconfig; fi \
     && GIT_CONFIG_GLOBAL=/tmp/gitconfig bundle install \
     && rm -f /tmp/gitconfig \
     && rm -rf vendor/bundle/ruby/*/cache
