@@ -1,0 +1,22 @@
+# TLS terminator for the host app (compose.tls.yml; civora-org/civora-platform#168).
+# Caddy obtains and renews Let's Encrypt certificates on its own, redirects
+# HTTP to HTTPS, and forwards X-Forwarded-Proto/-For/-Host to the app, which
+# Rails needs for force_ssl and for https mail links. HSTS is sent by Rails
+# (DECIDIM_FORCE_SSL=1), not here.
+#
+# Values come from the compose environment (.env):
+#   SITE_ADDRESS  the public host name, e.g. demo.civora.sk (no scheme)
+#   ACME_EMAIL    contact address for Let's Encrypt expiry notices
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Optional per-environment snippets. The demo overlay mounts demo.caddy
+	# here (noindex + robots.txt); a stack without snippets matches nothing.
+	import /etc/caddy/site.d/*.caddy
+
+	reverse_proxy app:3000
+}

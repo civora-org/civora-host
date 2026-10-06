@@ -1,0 +1,41 @@
+# PUBLIC DEMO server overlay (docs/ops/demo-server.md). Layered on top of
+# compose.yaml and compose.tls.yml:
+#
+#   COMPOSE_FILE=compose.yaml:compose.tls.yml:compose.demo.yml   (bin/demo-deploy sets it)
+#
+# Demo data only. Safety by construction:
+#   - the CRZ scheduler does not start (profile `crz-sync`), and no
+#     CRZ_ICO_ORG_* is ever set, so nothing is imported from the real register;
+#   - DEMO_MODE=1 turns outgoing mail into files (config/initializers/demo_mode.rb);
+#   - Caddy serves noindex headers and a disallow-all robots.txt;
+#   - memory limits sized for a 2 vCPU / 4 GB VPS (about 2.5 GB in total, the
+#     rest is for the OS, the page cache and image builds).
+# The observability overlay (compose.observability.yml) is NOT part of the demo:
+# it adds roughly 2 GB. See the doc for when to add it on a larger VPS.
+services:
+  app:
+    environment:
+      DEMO_MODE: "1"
+      DECIDIM_ORG_HOST: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+      DECIDIM_MAILER_SENDER: ${DECIDIM_MAILER_SENDER:-demo-noreply@example.org}
+      RAILS_MAX_THREADS: "3"
+      RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
+    mem_limit: 1700m
+    memswap_limit: 2200m
+
+  scheduler:
+    # Never started by `up`; only `--profile crz-sync` would start it.
+    profiles: ["crz-sync"]
+
+  db:
+    mem_limit: 512m
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=40"]
+
+  redis:
+    mem_limit: 128m
+    command: ["redis-server", "--maxmemory", "96mb", "--maxmemory-policy", "allkeys-lru", "--save", ""]
+
+  caddy:
+    mem_limit: 128m
+    volumes:
+      - ./deploy/caddy/demo.caddy:/etc/caddy/site.d/demo.caddy:ro

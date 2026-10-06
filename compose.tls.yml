@@ -1,0 +1,58 @@
+# TLS terminator overlay (civora-org/civora-platform#168, ADR-011): Caddy in
+# front of the app with automatic Let's Encrypt certificates, HTTPS-only.
+# Usable for any single-host stack, production included:
+#
+#   docker compose -f compose.yaml -f compose.tls.yml up -d
+#   (or COMPOSE_FILE=compose.yaml:compose.tls.yml in .env)
+#
+# Needs SITE_ADDRESS (public host name) and ACME_EMAIL in .env, and DNS for
+# SITE_ADDRESS pointing at this machine with ports 80 and 443 reachable.
+# Documented in docs/ops/demo-server.md (section "TLS terminator").
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env (public host name)}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env (Let's Encrypt contact)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    environment:
+      # Decidim forces SSL in production; this also sets HSTS and secure cookies.
+      DECIDIM_FORCE_SSL: "1"
+    # Only Caddy is reachable from outside; port 3000 stays inside the compose
+    # network. (Docker publishes ports around the host firewall, so leaving the
+    # base `3000:3000` mapping would expose the app over plain HTTP.)
+    ports: !reset []
+    healthcheck:
+      # With force_ssl the app answers plain-HTTP requests with a redirect.
+      # The in-container probe therefore sends X-Forwarded-Proto: https, as
+      # Caddy does for real traffic.
+      test:
+        - CMD
+        - ruby
+        - -rnet/http
+        - -e
+        - |
+          res = Net::HTTP.start("127.0.0.1", 3000) { |h| h.get("/up", "X-Forwarded-Proto" => "https") }
+          exit(res.code == "200" ? 0 : 1)
+
+volumes:
+  caddy-data: {}
+  caddy-config: {}

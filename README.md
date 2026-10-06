@@ -144,7 +144,7 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 
 ### Current limitations
 
-- `DECIDIM_FORCE_SSL=0` is set because no TLS terminator exists yet; remove the override once a reverse proxy terminates HTTPS in front of `app`.
+- `DECIDIM_FORCE_SSL=0` is set in `compose.yaml` because the base stack has no TLS terminator; the `compose.tls.yml` overlay (Caddy, automatic Let's Encrypt, `DECIDIM_FORCE_SSL=1`, [`docs/ops/demo-server.md`](docs/ops/demo-server.md)) provides one.
 - Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
 - Built for the host architecture only; multi-arch (buildx) is a follow-up.
 - The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.7.1`) keeps the result deterministic.
@@ -194,6 +194,7 @@ Secrets handling, environments, backup/restore, logging, observability, incident
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
 - [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
 - [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) — idempotent demo seed `civora:demo:proposal_to_contract`: proposal, budget project, result and the linked contract (#132)
+- [`docs/ops/demo-server.md`](docs/ops/demo-server.md) — public demo server on a ~5 EUR/month VPS: `bin/demo-provision`, `bin/demo-deploy`, Caddy TLS overlay (`compose.tls.yml`, #168), demo-only safety, nightly reset, teardown
 - [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 - [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules
