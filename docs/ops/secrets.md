@@ -30,8 +30,8 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 | `DATABASE_URL` | `config/database.yml` (production block) | unset | only if moving to a URL-style DB config |
 | `SMTP_ADDRESS` / `SMTP_PORT` / `SMTP_AUTHENTICATION` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_DOMAIN` | production mailer (`config/environments/production.rb`) | **unset — production mail is not configured yet** | wire at first real deploy; see `.env.example` |
 | `ALERT_TELEGRAM_BOT_TOKEN` / `ALERT_SMTP_PASSWORD` (+ non-secret `ALERT_TELEGRAM_CHAT_ID`, `ALERT_EMAIL_TO`, `ALERT_SMTP_USERNAME`) | Alertmanager delivery (`observability/alertmanager/entrypoint.sh`) | `.env` | SMTP password is a Google app password; rotate the bot token via `@BotFather` → `/revoke` |
-| `GITHUB_TOKEN` | Docker build (engine gem fetch) | `.env` | passed as BuildKit **secret mount**, never a build arg; not in image layers |
-| `ENGINE_READ_TOKEN` | CI (private gem checkout) | GitHub Actions secret | fine-grained PAT, Contents: read on the engine repo |
+| `GITHUB_TOKEN` | Docker build (engine gem fetch), optional: only for private forks | `.env` | passed as BuildKit **secret mount**, never a build arg; not in image layers |
+| `ENGINE_READ_TOKEN` | CI (engine checkout; a leftover from the private period, removable together with the workflow's `insteadOf` steps) | GitHub Actions secret | fine-grained PAT, Contents: read on the engine repo |
 | `STORAGE_PROVIDER` + `AWS_*` / `GCS_*` / `AZURE_*` | `config/storage.yml` | unset | dormant — only if object storage is adopted; then also `BACKUP_ENCRYPT_KEY` for encrypted offsite backups |
 | `REDIS_URL`, `PORT`, `RAILS_MAX_THREADS`, `RAILS_LOG_*`, `RAILS_ASSET_HOST`, `DECIDIM_ORG_HOST` (seeded organization host, `db/seeds.rb`) | config (not secret) | compose / env | listed for completeness |
 | OmniAuth / Maps / Etherpad / VAPID families | future `config/initializers/decidim.rb` | — | not in the surface yet; will arrive via `Decidim::Env` when the initializer lands |
