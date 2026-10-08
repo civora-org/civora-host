@@ -27,15 +27,11 @@ Before the first pilot deploy, work through the [pilot readiness checklist](#pil
 - Ruby **3.3.4** (see `.ruby-version`)
 - Node.js **22.14.0** (see `.node-version`) — for Shakapacker asset compilation
 - PostgreSQL (14+ recommended), reachable at `localhost:5432` by default
-- A GitHub account with read access to `civora-org` private repos (the engine is consumed as a tagged git source)
+- Network access to GitHub: the engine is consumed as a tagged git source from the public [`civora-org/decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk), no account or token needed
 
 ## Setup
 
 ```bash
-# Authenticate git for GitHub (one-time, any of):
-gh auth setup-git          # HTTPS via GitHub CLI token (recommended)
-# …or ensure your SSH key is registered with GitHub
-
 bundle install
 DISABLE_SPRING=1 bin/rails db:create db:migrate db:seed
 
@@ -107,7 +103,7 @@ Inside Docker, the same loop works with a personal, untracked `docker-compose.ov
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`: rubocop, minitest (Postgres 17 service, matching production), brakeman (`--exit-on-warn`, one documented ignore for the upstream-pinned EOL Rails warning — `config/brakeman.ignore`), bundler-audit (per-advisory ignores in `.bundler-audit.yml`, all provably upstream-blocked with revisit conditions), and a full-history gitleaks secret scan (`.gitleaks.toml`).
 
-CI authenticates to the private engine repository via the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`) — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
+The workflow still checks the engine out with the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`). That is a leftover from when the engine repository was private: it is public now, and the token and the workflow's `insteadOf` steps can be dropped. Until then — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
 
 ## Docker
 
@@ -122,24 +118,24 @@ Production-baseline container stack (tracked as `civora-org/civora-platform#48`)
 
 ### Build & run (clean machine)
 
-Prerequisites: Docker with Compose v2 and a GitHub token with read access to `civora-org/decidim-contracts_sk` (the engine gem is fetched from the private repo at build time).
+Prerequisites: Docker with Compose v2 and network access to GitHub (the engine gem is fetched from the public repository at build time). A GitHub token is only needed for private forks.
 
 ```bash
 cp .env.example .env                       # then fill in:
 #   POSTGRES_PASSWORD=<random hex>        (openssl rand -hex 16)
 #   SECRET_KEY_BASE=<random hex>          (openssl rand -hex 64)
-#   GITHUB_TOKEN=<token with repo read>
+#   GITHUB_TOKEN=                         (leave empty; only for private forks, token with Contents: read)
 
 GITHUB_TOKEN="$(grep GITHUB_TOKEN .env | cut -d= -f2)" docker compose up -d --build
 curl -fsS http://localhost:3000/contracts  # -> 200
 ```
 
-The token is passed as a BuildKit **secret mount**, never a build arg — it is not present in image history or layers (verified with `docker history --no-trunc` / `docker save | grep`).
+If you do set a token (private fork), it is passed as a BuildKit **secret mount**, never a build arg — it is not present in image history or layers (verified with `docker history --no-trunc` / `docker save | grep`).
 
 A full clean-state smoke test is available:
 
 ```bash
-GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /contracts -> 200
+scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /contracts -> 200
 ```
 
 ### Current limitations
@@ -147,7 +143,7 @@ GITHUB_TOKEN=... scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /c
 - `DECIDIM_FORCE_SSL=0` is set in `compose.yaml` because the base stack has no TLS terminator; the `compose.tls.yml` overlay (Caddy, automatic Let's Encrypt, `DECIDIM_FORCE_SSL=1`, [`docs/ops/demo-server.md`](docs/ops/demo-server.md)) provides one.
 - Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
 - Built for the host architecture only; multi-arch (buildx) is a follow-up.
-- The engine gem is fetched from GitHub at build time, so builds need network + token; the tag pin (`v1.7.1`) keeps the result deterministic.
+- The engine gem is fetched from GitHub at build time, so builds need network access; the tag pin (`v1.7.1`) keeps the result deterministic.
 
 ## Customisations over Decidim
 
