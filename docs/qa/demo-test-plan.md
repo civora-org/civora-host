@@ -4,7 +4,7 @@ Click-through test plan for the local demo stack (`http://localhost:3000`).
 Execute top to bottom; every case has numbered steps and an expected result (✅).
 Record outcomes in the table at the end (Pass / Fail / Notes).
 
-**Applies to:** civora-host `main` with `decidim-contracts_sk` **v1.3.0** (public UI redesign, header/footer overrides). Last updated 2026-10-03.
+**Applies to:** civora-host `main`. The pinned engine is `decidim-contracts_sk` **v1.7.1** (`Gemfile`). The local stack runs engine `main`, which adds #140–#145 on top of v1.7.1 (see [local stack update](../ops/local-stack-update.md)). Last updated 2026-10-11.
 
 ## 0. Before you start
 
@@ -28,6 +28,7 @@ Record outcomes in the table at the end (Pass / Fail / Notes).
 | Sign-in | `http://localhost:3000/users/sign_in` |
 | User | `contracts-admin@example.org` |
 | Password | in `tmp/demo-admin-credentials.txt` (gitignored, local only). **Never write the password into this file or any committed file.** The demo seed sets a random password; reset it locally if the file is missing. |
+| Second factor | Enrolled at the first admin sign-in (TC-1501). Procedure: `docs/ops/two-factor.md` |
 
 **Seeded demo records** (reference → state): DEMO-2026-001 → draft (§6 publishes it), DEMO-2026-002 → rejected, DEMO-2026-003 → returned, DEMO-2026-004 → published, DEMO-2026-005 → rejected, DEMO-2026-006 → archived, DEMO-2026-007 → archived, DEMO-2026-008 → published (CRZ mirror, stale by design), DEMO-2026-009 → published (CRZ mirror, stale by design), DEMO-OTHER-001 → other organization (invisible). Plus several thousand imported CRZ records.
 
@@ -41,7 +42,7 @@ Record outcomes in the table at the end (Pass / Fail / Notes).
 
 **TC-101 — Homepage hero (en)**
 1. Open `http://localhost:3000/?locale=en`.
-✅ Hero shows "Public contracts of Slovak municipalities — transparent, structured, searchable." with a **Browse contracts** button linking to `/contracts`.
+✅ Hero shows "Public contracts of Slovak municipalities — transparent, structured, searchable." with a **Browse contracts** button linking to `/contracts`. A second button to `/processes` appears only when a process is published (TC-1505).
 
 **TC-102 — Homepage hero (sk)**
 1. Open `http://localhost:3000/?locale=sk`.
@@ -49,7 +50,7 @@ Record outcomes in the table at the end (Pass / Fail / Notes).
 
 **TC-103 — Header links**
 1. Check the top-right icon row.
-✅ Exactly **Pomoc** (question icon) and **Zmluvy** (document icon) — en: Help / Contracts — plus sign-in/account. No Meetings, no Activity.
+✅ **Pomoc** (question icon) and **Zmluvy** (document icon) — en: Help / Contracts — plus sign-in/account. **Participácia** / Participation also appears when the demo has a published process (TC-1505). No Meetings, no Activity.
 
 **TC-104 — Topbar search routes to the catalogue**
 1. Type `DEMO-2026-009` into the top search box, press Enter.
@@ -62,7 +63,7 @@ Record outcomes in the table at the end (Pass / Fail / Notes).
 **TC-106 — Footer**
 1. Scroll to the footer (sk).
 ✅ Intro reads "Vitajte na platforme Civora." (with a space — not "naCivora") and "Verejné zmluvy, ich dokumenty a zmeny na jednom mieste. Prehľadne a dohľadateľne pre každého."
-✅ First column: Domov + Zmluvy. Zdroje (Resources): **Otvorené dáta only**. No empty **Pomocník** column (it appears only when help topics are configured for the footer).
+✅ First column: Domov + Zmluvy. Zdroje (Resources): **Otvorené dáta** and **Vyhlásenie o prístupnosti** (TC-1506). No empty **Pomocník** column (it appears only when help topics are configured for the footer).
 
 **TC-107 — Language switcher**
 1. Use the language button (bottom bar) to switch sk ↔ en.
@@ -319,6 +320,60 @@ Both demo users hold all engine roles (config-time resolver: organization admins
 2. Remove any documents you attached for testing.
 ✅ The public catalogue shows only demo and CRZ records — nothing named "test", "manual" or "E2E".
 
+## 15. Changes since 2026-10-03
+
+Covers the admin second factor, the CRZ attachment links, the participation entry points and the accessibility statement. Each case lists its own prerequisite.
+
+**TC-1501 — Admin second factor: enrolment (first sign-in)**
+Prerequisite: `contracts-admin@example.org` has not enrolled yet. Check with `docker compose exec app bin/rails two_factor:status`.
+1. Sign in with e-mail and password (§0).
+✅ You land on `/two_factor/enrolment`, not on the admin. A QR code and the same key as text are shown.
+2. Scan the QR code with any authenticator app and enter the six-digit code.
+✅ A correct code opens a page with ten single-use recovery codes, shown once. Store them in a password manager. Never copy them into this plan or any file.
+3. Choose "I have saved them, continue".
+✅ The admin catalogue `/contracts/admin/contracts` opens.
+
+**TC-1502 — Admin second factor: challenge on later sign-ins**
+1. Sign out, then sign in again with the password.
+✅ You land on `/two_factor/challenge`. A six-digit code opens the admin and returns you to the page you were heading for.
+2. Open `/two_factor/recovery_codes`.
+✅ The page shows how many recovery codes are left. Do not generate a new set in a demo run: it invalidates the set stored in TC-1501.
+3. Lockout (run last, in its own session): enter five wrong codes.
+✅ The sixth attempt is answered with HTTP 429. The credential stays locked for 15 minutes, even for the correct code. Wait 15 minutes before any further admin test.
+
+**TC-1503 — The second factor gates admin paths, not the public site**
+1. Sign out. Open `/contracts` and then `/contracts/admin/contracts`.
+✅ The catalogue opens with no second-factor prompt. The admin path asks for sign-in and, after the password, goes to enrolment or the challenge (TC-1501 / TC-1502).
+
+**TC-1504 — "Prílohy (v CRZ)" on a CRZ mirror**
+Prerequisite: a CRZ mirror with attachment links. The demo mirrors may not have them yet. Dry-run the backfill first: `bin/rails "decidim_contracts_sk:crz_import:backfill_attachments[<organization_id>]"` (lists only). Add `CONFIRM=1` to write. It fetches from CRZ, so it needs internet access and stays within the rate limit.
+1. Open a mirrored contract's public detail (`/contracts/<id>`) in sk, then in en.
+✅ The "Prílohy (v CRZ)" section lists each attachment as a link to the official file on CRZ. Nothing is served from the local stack.
+2. Open a mirror that has no attachments.
+✅ The sk sentence "K tejto zmluve nie sú v CRZ zverejnené žiadne prílohy." shows in place of a list.
+3. Open DEMO-2026-004 (editorial record).
+✅ No "Prílohy (v CRZ)" section.
+
+**TC-1505 — Participation entry points**
+Prerequisite: the demo organization has at least one published, public process. Without one, none of the entry points appear (by design). Create the homepage block once: `docker compose exec app bin/rails "civora:home:participation[<organization_id>]"` (idempotent).
+1. Open `http://localhost:3000/?locale=sk` at desktop width.
+✅ The header shows **Participácia** next to Pomoc and Zmluvy. The hero has a second button beside **Prezrieť zmluvy** that links to `/processes`.
+2. Click the header link.
+✅ `/processes` opens.
+3. Scroll below the hero.
+✅ The **Aktívne procesy** block lists the promoted or active processes. With none promoted or active, the block does not show.
+4. Open the menu at 375 px.
+✅ The mobile menu has a **Procesy** entry.
+
+**TC-1506 — Accessibility statement**
+1. Scroll to the footer (sk), then switch to en with `?locale=en`.
+✅ The Resources column has **Vyhlásenie o prístupnosti** (en: **Accessibility statement**).
+2. Open `/pages/accessibility`.
+✅ The statement loads with its sections, a list of known non-conformities, and a note that no screen-reader test has been run. The two `[overiť s právnikom]` marks are expected until the lawyer check (`docs/ops/accessibility-statement.md`, open item 1). Record them as expected, not as failures.
+3. Read the contact line.
+✅ It shows the address set by `ACCESSIBILITY_CONTACT_EMAIL`. If the placeholder `[doplniť kontaktný e-mail]` appears, record a Fail: it must be set before a pilot.
+
+
 ---
 
 ## Results
@@ -339,5 +394,6 @@ Both demo users hold all engine roles (config-time resolver: organization admins
 | §12 Roles (TC-1201) | | |
 | §13 Responsive/print/browsers (TC-1301…1303) | | |
 | §14 Clean up | | |
+| §15 Changes since 2026-10-03 (TC-1501…1506) | | |
 
 *When a case fails: note the URL, the step number and a screenshot. Bugs go to `civora-org/civora-platform` as issues.*
