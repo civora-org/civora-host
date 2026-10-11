@@ -629,6 +629,19 @@ ActiveRecord::Schema[7.2].define(version: 20_261_011_100_000) do
     t.index ["decidim_organization_id"], name: "idx_contracts_sk_contracts_on_organization_id"
   end
 
+  create_table "decidim_contracts_sk_crz_attachments", force: :cascade do |t|
+    t.bigint "contract_id", null: false
+    t.string "crz_id"
+    t.string "title"
+    t.string "kind", null: false
+    t.string "file_name", null: false
+    t.bigint "file_size"
+    t.datetime "changed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_id"], name: "index_decidim_contracts_sk_crz_attachments_on_contract_id"
+  end
+
   create_table "decidim_contracts_sk_documents", force: :cascade do |t|
     t.bigint "contract_id", null: false
     t.string "title", null: false
@@ -2005,6 +2018,7 @@ ActiveRecord::Schema[7.2].define(version: 20_261_011_100_000) do
   add_foreign_key "decidim_contracts_sk_audit_events", "decidim_organizations"
   add_foreign_key "decidim_contracts_sk_audit_events", "decidim_users"
   add_foreign_key "decidim_contracts_sk_contract_links", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_crz_attachments", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_documents", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_notes", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_parties", "decidim_contracts_sk_contracts", column: "contract_id"

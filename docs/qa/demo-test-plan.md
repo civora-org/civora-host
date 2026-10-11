@@ -4,7 +4,7 @@ Click-through test plan for the local demo stack (`http://localhost:3000`).
 Execute top to bottom; every case has numbered steps and an expected result (✅).
 Record outcomes in the table at the end (Pass / Fail / Notes).
 
-**Applies to:** civora-host `main`. The pinned engine is `decidim-contracts_sk` **v1.7.1** (`Gemfile`). The local stack runs engine `main`, which adds #140–#145 on top of v1.7.1 (see [local stack update](../ops/local-stack-update.md)). Last updated 2026-10-11.
+**Applies to:** civora-host `main`. The pinned engine is `decidim-contracts_sk` **v1.8.0** (`Gemfile`), which includes the CRZ publication date in open data, CRZ attachment links, the Decidim 0.31/0.32 support and the admin accessibility fixes (see [local stack update](../ops/local-stack-update.md)). Last updated 2026-10-11.
 
 ## 0. Before you start
 
