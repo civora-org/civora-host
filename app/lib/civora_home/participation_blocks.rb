@@ -32,6 +32,7 @@ module CivoraHome
       existing = scope.find_by(manifest_name: MANIFEST)
       return Result.new(block: existing, created: false) if existing
 
+      normalize_weights!(scope)
       block = Decidim::ContentBlock.create!(
         organization: @organization,
         scope_name: SCOPE,
@@ -41,6 +42,21 @@ module CivoraHome
         published_at: Time.current
       )
       Result.new(block:, created: true)
+    end
+
+    private
+
+    # Homepages seeded outside /system (db/seeds.rb, hand-made demo orgs) can
+    # carry blocks with a nil weight. Postgres sorts NULLs last, so a new
+    # block with weight max+1 would render above them — e.g. above the hero.
+    # Give weightless blocks positions after the weighted ones, in id order,
+    # before appending the new block at the end.
+    def normalize_weights!(scope)
+      next_weight = scope.maximum(:weight).to_i
+      scope.where(weight: nil).order(:id).each do |existing|
+        next_weight += 1
+        existing.update!(weight: next_weight)
+      end
     end
   end
 end

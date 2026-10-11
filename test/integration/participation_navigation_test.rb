@@ -107,6 +107,20 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
     assert_equal 9, block.weight
   end
 
+  test "the rake task keeps a weightless hero above the new block" do
+    hero = Decidim::ContentBlock.find_by(organization: @organization, scope_name: "homepage", manifest_name: "hero")
+    hero ||= Decidim::ContentBlock.create!(organization: @organization, scope_name: "homepage", manifest_name: "hero", published_at: Time.current)
+    hero.update!(weight: nil)
+    Rails.application.load_tasks unless Rake::Task.task_defined?("civora:home:participation")
+    task = Rake::Task["civora:home:participation"]
+    task.reenable
+    capture_io { task.invoke(@organization.id.to_s) }
+
+    order = Decidim::ContentBlock.where(organization: @organization, scope_name: "homepage").order(:weight).pluck(:manifest_name)
+    assert_operator order.index("hero"), :<, order.index("highlighted_processes")
+    assert_not_nil hero.reload.weight
+  end
+
   test "the block renders on the homepage for a highlighted active process" do
     CivoraHome::ParticipationBlocks.call(@organization)
     process = FactoryBot.create(:participatory_process, :published, :promoted, organization: @organization,

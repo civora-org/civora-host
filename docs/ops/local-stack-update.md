@@ -160,3 +160,25 @@ Then repeat steps 3, 5, 6 and 8.
 - The first backup used the wrong database name and produced a 1 KB file. The real database is `decidim_app_production`.
 - `bundle install` failed with "No such file or directory - git" because the image has no git. Step 6 handles it.
 - `Gemfile.dev-engine` had to be regenerated because the host `Gemfile` gained `rotp` (step 3).
+
+### 2026-10-11 (evening) — host `19a42cc` → `6f453de`, engine `main` → tag `v1.8.0`
+
+**Backup:** `backups/pre-update-2026-10-11b.dump` (1.1 MB).
+
+**What came in**
+- Host: participation navigation (civora-host#33), demo test plan refresh (#35), engine pin v1.8.0 (#36).
+- Engine: back on a release tag, v1.8.0. It is `main` from the morning update plus the hidden empty "Dokumenty" section on CRZ mirrors.
+
+**Steps:** 1–9 of the procedure. No new migrations (the CRZ attachments migration had already run in the morning). Then:
+```bash
+bin/rails "civora:home:participation[1]"
+bin/rails "civora:home:participation[3]"
+```
+
+**Data tasks:** the attachment backfill finished before the rebuild.
+- Vranov (org 3): 1 311 of 1 315 contracts have links; 4 have none in CRZ.
+- Považská Bystrica (org 1): 640 updated, 5 fail on every retry. They are probably removed from CRZ; check them by id if it matters.
+
+**Demo data:** Vranov (org 3) got the labelled demo process "UKÁŽKA – Participatívny rozpočet (fiktívne údaje)" (`civora:demo:proposal_to_contract[3]`, then retitled). Its one demo contract is `DEMO-2026-010`, "UKÁŽKA – …".
+
+**Gotcha hit:** the processes block rendered **above** the hero in both orgs, because their hero blocks had `weight: nil` and Postgres sorts NULLs last. Fixed by hand on the stack (hero = 1, processes = 2). The task itself is fixed in civora-host#37.
