@@ -107,3 +107,26 @@
     display: table-header-group;
   }
 }
+
+// =============================================================================
+// Home hero CTAs
+//
+// app/cells/decidim/content_blocks/hero/cta_button.erb renders the contracts
+// CTA and, when the organization has participatory processes, a second CTA to
+// them. Plain CSS (no @apply, no Tailwind utilities the bundle might lack):
+// side by side from the small breakpoint up, stacked and full width on phones.
+// =============================================================================
+.hero__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .hero__cta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+  }
+}

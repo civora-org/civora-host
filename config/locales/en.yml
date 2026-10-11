@@ -32,6 +32,11 @@ en:
   civora:
     footer:
       accessibility: Accessibility statement
+    home:
+      hero:
+        processes: Participation
+    menu:
+      participation: Participation
   two_factor:
     gate:
       required: Complete the second sign-in step to open the administration.
@@ -71,3 +76,8 @@ en:
       regenerate_hint: Generating new codes invalidates all the old ones.
       regenerate: Generate new recovery codes
       regenerate_confirm: Replace all current recovery codes?
+  decidim:
+    pages:
+      home:
+        hero:
+          participate_title: Browse public contracts

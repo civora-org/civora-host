@@ -200,7 +200,8 @@ The engine provides markup only. The Civora look and content live in this reposi
 | Area | Where |
 |---|---|
 | Colours, logo and print layer | [`docs/appearance.md`](docs/appearance.md), `app/packs/stylesheets/decidim/decidim_application.scss` |
-| Header: Help and Zmluvy (the catalogue) instead of Meetings and Activity | `app/views/layouts/decidim/header/_main_links_desktop.html.erb` |
+| Header: Help and Zmluvy (the catalogue) instead of Meetings and Activity; a Participácia link when the town has published processes | `app/views/layouts/decidim/header/_main_links_desktop.html.erb`, `app/lib/participation_navigation.rb` |
+| Homepage hero: a second button to the processes when they exist | `app/cells/decidim/content_blocks/hero/cta_button.erb` |
 | Topbar search: submits to the catalogue's `q` filter | `app/views/layouts/decidim/header/_main_search.html.erb` |
 | Footer: Resources holds Open Data only | `app/views/layouts/decidim/footer/_main_links.html.erb` |
 | Slovak locale fix and footer copy | `config/locales/sk.yml` |
@@ -227,6 +228,7 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 | [`docs/ops/crz-sync.md`](docs/ops/crz-sync.md) | Nightly CRZ sync scheduler |
 | [`docs/ops/two-factor.md`](docs/ops/two-factor.md) | Admin TOTP: who must enrol, sign-in flow, lockout, operator reset |
 | [`docs/ops/participation-link.md`](docs/ops/participation-link.md) | Contract links to results and projects |
+| [`docs/ops/participation-navigation.md`](docs/ops/participation-navigation.md) | Header link, hero button and the homepage processes block (`civora:home:participation`) |
 | [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) | Accessibility statement and its publishing task |
 | [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) | Backup and restore procedures, deploy gate, scheduled operation |
 | [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) | Log of executed restore drills |
