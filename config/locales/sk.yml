@@ -20,3 +20,46 @@ sk:
           footer_sub_hero_headline: Vitajte na platforme %{organization}.
         hero:
           welcome: Vitajte na platforme %{organization}!
+  two_factor:
+    gate:
+      required: Pred vstupom do administrácie dokončite druhý krok prihlásenia.
+    invalid_code: Kód nie je platný. Skontrolujte ho a skúste to znova.
+    locked: Príliš veľa nesprávnych kódov. Skúste to znova o 15 minút alebo požiadajte prevádzkovateľa platformy o reset druhého faktora.
+    recovery_used:
+      one: Núdzový kód bol prijatý. Zostáva vám %{count} núdzový kód. Vygenerujte si nové, keď to bude možné.
+      few: Núdzový kód bol prijatý. Zostávajú vám %{count} núdzové kódy. Vygenerujte si nové, keď to bude možné.
+      many: Núdzový kód bol prijatý. Zostáva vám %{count} núdzového kódu. Vygenerujte si nové, keď to bude možné.
+      other: Núdzový kód bol prijatý. Zostáva vám %{count} núdzových kódov. Vygenerujte si nové, keď to bude možné.
+    challenge:
+      title: Druhý krok prihlásenia
+      lead: Na vstup do administrácie zadajte šesťmiestny kód z overovacej aplikácie.
+      label: Kód
+      help: Šesťmiestny kód, alebo jeden z núdzových kódov, ak nemáte po ruke zariadenie.
+      submit: Overiť
+      lost_device: Stratili ste zariadenie aj núdzové kódy? Prevádzkovateľ platformy vám po overení totožnosti druhý faktor vyresetuje.
+    enrolment:
+      title: Nastavenie dvojkrokového prihlásenia
+      lead: Správcovia a držitelia rolí sa prihlasujú heslom a kódom z overovacej aplikácie. Nastavenie urobíte raz a trvá približne dve minúty.
+      step_install: Nainštalujte si do telefónu overovaciu aplikáciu (ľubovoľnú, ktorá podporuje časové kódy).
+      step_scan: Naskenujte QR kód alebo pridajte nižšie uvedený kľúč ručne.
+      step_confirm: Dokončite zadaním šesťmiestneho kódu, ktorý aplikácia zobrazí.
+      qr_label: QR kód pre vašu overovaciu aplikáciu
+      key_label: Kľúč na nastavenie
+      key_hint: Kľúč použite, ak nemôžete skenovať. Nezdieľajte ho; kto ho má, vie generovať vaše kódy.
+      label: Kód z aplikácie
+      help: Šesť číslic.
+      submit: Zapnúť dvojkrokové prihlásenie
+    recovery:
+      created_title: Uložte si núdzové kódy
+      created_lead: Každý kód funguje len raz a poslúži, ak stratíte zariadenie. Zobrazia sa iba teraz. Uložte ich mimo tohto zariadenia, napríklad do správcu hesiel alebo na papier.
+      continue: Uložil/a som ich, pokračovať
+      status_title: Dvojkrokové prihlásenie
+      status_active: Dvojkrokové prihlásenie je pre váš účet zapnuté.
+      remaining:
+        one: Máte %{count} nepoužitý núdzový kód.
+        few: Máte %{count} nepoužité núdzové kódy.
+        many: Máte %{count} nepoužitého núdzového kódu.
+        other: Máte %{count} nepoužitých núdzových kódov.
+      regenerate_hint: Vygenerovaním nových kódov sa všetky staré zneplatnia.
+      regenerate: Vygenerovať nové núdzové kódy
+      regenerate_confirm: Nahradiť všetky súčasné núdzové kódy?

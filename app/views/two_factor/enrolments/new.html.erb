@@ -1,0 +1,33 @@
+<% add_decidim_page_title(t("two_factor.enrolment.title")) %>
+<%= render "two_factor/styles" %>
+
+<%= render(layout: "layouts/decidim/shared/layout_center") do %>
+  <div class="two-factor">
+    <h1 class="title-decorator my-12"><%= t("two_factor.enrolment.title") %></h1>
+    <p class="two-factor__lead"><%= t("two_factor.enrolment.lead") %></p>
+
+    <ol class="two-factor__steps">
+      <li><%= t("two_factor.enrolment.step_install") %></li>
+      <li><%= t("two_factor.enrolment.step_scan") %></li>
+      <li><%= t("two_factor.enrolment.step_confirm") %></li>
+    </ol>
+
+    <div class="two-factor__panel">
+      <svg class="two-factor__qr" viewBox="0 0 <%= @qr[:size] %> <%= @qr[:size] %>" role="img" aria-label="<%= t("two_factor.enrolment.qr_label") %>" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#fff"/>
+        <path d="<%= @qr[:d] %>" fill="#000"/>
+      </svg>
+      <p class="two-factor__key"><span class="sr-only"><%= t("two_factor.enrolment.key_label") %>: </span><%= @secret_groups %></p>
+      <p class="two-factor__aside"><%= t("two_factor.enrolment.key_hint") %></p>
+    </div>
+
+    <%= decidim_form_for(@form, url: main_app.two_factor_enrolment_path, method: :post) do |f| %>
+      <div class="form__wrapper">
+        <%= f.text_field :code, label: t("two_factor.enrolment.label"), autocomplete: "one-time-code", inputmode: "numeric", autofocus: @form.errors.any?, pattern: "[0-9 ]*", spellcheck: false, required: true, help_text: t("two_factor.enrolment.help"), class: "two-factor__code-input" %>
+      </div>
+      <div class="form__wrapper-block">
+        <button type="submit" class="button button__lg button__secondary"><%= t("two_factor.enrolment.submit") %></button>
+      </div>
+    <% end %>
+  </div>
+<% end %>

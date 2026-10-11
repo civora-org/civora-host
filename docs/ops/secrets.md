@@ -24,7 +24,7 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 
 | Secret | Used by | Lives in | Notes |
 |---|---|---|---|
-| `SECRET_KEY_BASE` | Rails session/cookie signing | `.env` (dev & prod) | rotate → invalidates sessions |
+| `SECRET_KEY_BASE` | Rails session/cookie signing | `.env` (dev & prod) | rotate → invalidates sessions **and every enrolled admin second factor**: run `two_factor:reset_all` right after ([two-factor.md](two-factor.md)) |
 | `POSTGRES_PASSWORD` | Postgres auth (compose + `database.yml`) | `.env` | dev compose overlay uses trust auth instead |
 | `DATABASE_USERNAME` / `DATABASE_PASSWORD` | `config/database.yml` | `.env` (prod), unset locally | local dev uses peer auth |
 | `DATABASE_URL` | `config/database.yml` (production block) | unset | only if moving to a URL-style DB config |

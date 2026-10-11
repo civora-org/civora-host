@@ -1,0 +1,20 @@
+<% add_decidim_page_title(t("two_factor.challenge.title")) %>
+<%= render "two_factor/styles" %>
+
+<%= render(layout: "layouts/decidim/shared/layout_center") do %>
+  <div class="two-factor">
+    <h1 class="title-decorator my-12"><%= t("two_factor.challenge.title") %></h1>
+    <p class="two-factor__lead"><%= t("two_factor.challenge.lead") %></p>
+
+    <%= decidim_form_for(@form, url: main_app.two_factor_challenge_path, method: :post) do |f| %>
+      <div class="form__wrapper">
+        <%= f.text_field :code, label: t("two_factor.challenge.label"), autocomplete: "one-time-code", autocapitalize: "none", spellcheck: false, autofocus: true, required: true, help_text: t("two_factor.challenge.help"), class: "two-factor__code-input" %>
+      </div>
+      <div class="form__wrapper-block">
+        <button type="submit" class="button button__lg button__secondary"><%= t("two_factor.challenge.submit") %></button>
+      </div>
+    <% end %>
+
+    <p class="two-factor__aside"><%= t("two_factor.challenge.lost_device") %></p>
+  </div>
+<% end %>

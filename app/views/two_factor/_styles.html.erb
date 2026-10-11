@@ -1,0 +1,17 @@
+<%# Host-owned, scoped to .two-factor. Decidim's compiled bundle supplies the
+    form, button and heading classes; only what it lacks (QR size, key and
+    recovery-code blocks) is declared here. Colours are Decidim's palette. %>
+<% content_for :css_content do %>
+  <style>
+    .two-factor { max-width: 34rem; margin-inline: auto; }
+    .two-factor__lead { margin-block: 0 1.5rem; color: #3e4c5c; }
+    .two-factor__steps { margin: 0 0 1.5rem; padding-left: 1.5rem; list-style: decimal; display: grid; gap: 0.5rem; }
+    .two-factor__panel { border: 1px solid #e1e5ef; background: #fafbfc; border-radius: 0.5rem; padding: 1rem; margin-block: 1rem; }
+    .two-factor__qr { display: block; width: 12rem; height: 12rem; margin-inline: auto; background: #fff; padding: 0.5rem; }
+    .two-factor__key { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.125rem; letter-spacing: 0.08em; overflow-wrap: anywhere; text-align: center; margin: 0.75rem 0 0; user-select: all; }
+    .two-factor__codes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.5rem 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.125rem; }
+    .two-factor__code-input { font-variant-numeric: tabular-nums; letter-spacing: 0.1em; }
+    .two-factor__aside { margin-top: 1.5rem; color: #3e4c5c; font-size: 0.875rem; }
+    @media print { .two-factor__actions { display: none; } }
+  </style>
+<% end %>

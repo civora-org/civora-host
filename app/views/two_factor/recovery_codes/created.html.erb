@@ -1,0 +1,15 @@
+<% add_decidim_page_title(t("two_factor.recovery.created_title")) %>
+<%= render "two_factor/styles" %>
+
+<%= render(layout: "layouts/decidim/shared/layout_center") do %>
+  <div class="two-factor">
+    <h1 class="title-decorator my-12"><%= t("two_factor.recovery.created_title") %></h1>
+    <p class="two-factor__lead"><%= t("two_factor.recovery.created_lead") %></p>
+
+    <%= render "two_factor/recovery_codes/codes", codes: @recovery_codes %>
+
+    <div class="form__wrapper-block two-factor__actions">
+      <%= link_to t("two_factor.recovery.continue"), @continue_path, class: "button button__lg button__secondary" %>
+    </div>
+  </div>
+<% end %>

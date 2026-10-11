@@ -1,0 +1,15 @@
+<% add_decidim_page_title(t("two_factor.recovery.status_title")) %>
+<%= render "two_factor/styles" %>
+
+<%= render(layout: "layouts/decidim/shared/layout_center") do %>
+  <div class="two-factor">
+    <h1 class="title-decorator my-12"><%= t("two_factor.recovery.status_title") %></h1>
+    <p class="two-factor__lead"><%= t("two_factor.recovery.status_active") %></p>
+    <p><%= t("two_factor.recovery.remaining", count: recovery_codes_remaining) %></p>
+    <p class="two-factor__aside"><%= t("two_factor.recovery.regenerate_hint") %></p>
+
+    <div class="form__wrapper-block two-factor__actions">
+      <%= button_to t("two_factor.recovery.regenerate"), main_app.two_factor_recovery_codes_path, method: :post, class: "button button__lg button__secondary", form: { data: { confirm: t("two_factor.recovery.regenerate_confirm") } } %>
+    </div>
+  </div>
+<% end %>

@@ -12,7 +12,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 20_261_006_000_004) do
+ActiveRecord::Schema[7.2].define(version: 20_261_011_100_000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "ltree"
   enable_extension "pg_trgm"
@@ -44,6 +44,37 @@ ActiveRecord::Schema[7.2].define(version: 20_261_006_000_004) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index %w(blob_id variation_digest), name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "civora_two_factor_credentials", force: :cascade do |t|
+    t.bigint "decidim_user_id", null: false
+    t.text "otp_secret_ciphertext", null: false
+    t.bigint "consumed_timestep"
+    t.datetime "confirmed_at"
+    t.integer "failed_attempts", default: 0, null: false
+    t.datetime "locked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decidim_user_id"], name: "index_civora_two_factor_credentials_on_decidim_user_id", unique: true
+  end
+
+  create_table "civora_two_factor_events", force: :cascade do |t|
+    t.bigint "decidim_user_id", null: false
+    t.string "kind", null: false
+    t.string "actor", null: false
+    t.string "reason"
+    t.datetime "created_at", null: false
+    t.index ["decidim_user_id"], name: "index_civora_two_factor_events_on_decidim_user_id"
+  end
+
+  create_table "civora_two_factor_recovery_codes", force: :cascade do |t|
+    t.bigint "credential_id", null: false
+    t.string "code_digest", null: false
+    t.datetime "used_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index %w(credential_id code_digest), name: "idx_civora_2fa_recovery_digest", unique: true
+    t.index ["credential_id"], name: "index_civora_two_factor_recovery_codes_on_credential_id"
   end
 
   create_table "decidim_accountability_milestones", id: :serial, force: :cascade do |t|
@@ -1950,6 +1981,8 @@ ActiveRecord::Schema[7.2].define(version: 20_261_006_000_004) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "civora_two_factor_credentials", "decidim_users", on_delete: :cascade
+  add_foreign_key "civora_two_factor_recovery_codes", "civora_two_factor_credentials", column: "credential_id", on_delete: :cascade
   add_foreign_key "decidim_area_types", "decidim_organizations"
   add_foreign_key "decidim_areas", "decidim_area_types", column: "area_type_id"
   add_foreign_key "decidim_areas", "decidim_organizations"
