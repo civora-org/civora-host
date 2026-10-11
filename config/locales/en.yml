@@ -32,3 +32,42 @@ en:
   civora:
     footer:
       accessibility: Accessibility statement
+  two_factor:
+    gate:
+      required: Complete the second sign-in step to open the administration.
+    invalid_code: The code is not valid. Check the code and try again.
+    locked: Too many wrong codes. Try again in 15 minutes, or ask the platform operator to reset your second factor.
+    recovery_used:
+      one: Recovery code accepted. You have %{count} recovery code left. Generate new ones when you can.
+      other: Recovery code accepted. You have %{count} recovery codes left. Generate new ones when you can.
+    challenge:
+      title: Second sign-in step
+      lead: Enter the six-digit code from your authenticator app to open the administration.
+      label: Code
+      help: A six-digit code, or one of your recovery codes if you cannot reach your device.
+      submit: Verify
+      lost_device: Lost your device and your recovery codes? The platform operator can reset your second factor after verifying your identity.
+    enrolment:
+      title: Set up two-step sign-in
+      lead: Administrators and role holders sign in with a password and a code from an authenticator app. Set it up once; it takes about two minutes.
+      step_install: Install an authenticator app on your phone (any app that supports time-based codes).
+      step_scan: Scan the QR code, or add the key below by hand.
+      step_confirm: Enter the six-digit code the app shows to finish.
+      qr_label: QR code for your authenticator app
+      key_label: Setup key
+      key_hint: Use the key if you cannot scan. Keep it private; anyone holding it can generate your codes.
+      label: Code from the app
+      help: Six digits.
+      submit: Turn on two-step sign-in
+    recovery:
+      created_title: Save your recovery codes
+      created_lead: Each code works once, if you lose your device. They are shown only now. Store them outside this device, for example in a password manager or on paper.
+      continue: I have saved them, continue
+      status_title: Two-step sign-in
+      status_active: Two-step sign-in is on for your account.
+      remaining:
+        one: You have %{count} unused recovery code.
+        other: You have %{count} unused recovery codes.
+      regenerate_hint: Generating new codes invalidates all the old ones.
+      regenerate: Generate new recovery codes
+      regenerate_confirm: Replace all current recovery codes?

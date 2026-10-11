@@ -18,6 +18,14 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", :as => :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", :as => :pwa_manifest
 
+  # Admin second factor (civora-org/civora-platform#164, ADR-010). Host-owned
+  # pages; the gate itself lives in app/lib/two_factor/gate.rb.
+  get "two_factor/challenge", to: "two_factor/challenges#new", as: :new_two_factor_challenge
+  post "two_factor/challenge", to: "two_factor/challenges#create", as: :two_factor_challenge
+  get "two_factor/enrolment", to: "two_factor/enrolments#new", as: :new_two_factor_enrolment
+  post "two_factor/enrolment", to: "two_factor/enrolments#create", as: :two_factor_enrolment
+  resource :two_factor_recovery_codes, only: [:show, :create], controller: "two_factor/recovery_codes", path: "two_factor/recovery_codes"
+
   # Defines the root path route ("/")
   # root "posts#index"
 end
