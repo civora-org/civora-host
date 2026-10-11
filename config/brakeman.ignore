@@ -10,6 +10,29 @@
       "line": 676,
       "note": "decidim 0.31.7 pins rails ~> 7.2.0 — the EOL Rails 7.2 line is unfixable without forking Decidim. REVISIT: next Decidim major that supports a maintained Rails line. Any NEW brakeman warning still fails CI (--exit-on-warn).",
       "confidence": "High"
+    },
+    {
+      "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "721fb69ce2d81f9a7cf30a24abdbbd18aa605941523008361fadf95a5e7e45a5",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "app/lib/civora_onboard/sync_resume.rb",
+      "line": 98,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "Open3.capture2e({ \"DISABLE_SPRING\" => \"1\" }, Rails.root.join(\"bin/rails\").to_s, \"decidim_contracts_sk:crz_import:sync[#{Integer(organization_id)},#{Time.iso8601(since.to_s).utc.iso8601}]\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "CivoraOnboard::SyncResume",
+        "method": "run_rake_task"
+      },
+      "user_input": "Integer(organization_id)",
+      "confidence": "Medium",
+      "cwe_id": [
+        77
+      ],
+      "note": "Onboarding first-sync runner (civora-org/civora-platform#140): argv form, no shell; organization_id is Integer()-parsed and since is a Time.iso8601 round-trip before interpolation into the rake task name. Operator-run CLI only, never reachable from a request."
     }
   ]
 }

@@ -191,6 +191,7 @@ Secrets handling, environments, backup/restore, logging, observability, incident
 - [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
 - [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) — idempotent demo seed `civora:demo:proposal_to_contract`: proposal, budget project, result and the linked contract (#132)
 - [`docs/ops/demo-server.md`](docs/ops/demo-server.md) — public demo server on a ~5 EUR/month VPS: `bin/demo-provision`, `bin/demo-deploy`, Caddy TLS overlay (`compose.tls.yml`, #168), demo-only safety, nightly reset, teardown
+- [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) — scripted, idempotent municipality onboarding: `civora:onboard:organization`, `civora:onboard:crz_sync` (rate-limit resume), `civora:onboard:verify` (#140)
 - [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
 - [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
 - [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules

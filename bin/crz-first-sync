@@ -1,0 +1,10 @@
+#!/bin/sh
+# First CRZ sync for a freshly onboarded municipality, resuming after the
+# ekosystem rate limit (60 requests/minute) stops it early.
+#   bin/crz-first-sync <organization id> [<since ISO8601>]
+# Inside the stack: docker compose exec app bin/crz-first-sync 2 2026-01-01T00:00:00Z
+# See docs/ops/onboard-municipality.md.
+set -eu
+cd "$(dirname "$0")/.."
+[ $# -ge 1 ] || { echo "usage: bin/crz-first-sync <organization id> [<since ISO8601>]" >&2; exit 2; }
+DISABLE_SPRING=1 exec bin/rails "civora:onboard:crz_sync[$1,${2:-}]"
