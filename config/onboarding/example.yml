@@ -1,0 +1,20 @@
+# Example input for `bin/rails "civora:onboard:organization[config/onboarding/example.yml]"`.
+# Non-secret values only. The admin password is NEVER written here: pass it as
+# ONBOARD_ADMIN_PASSWORD in the environment of the command. Copy this file
+# (for example to tmp/onboarding/<city>.yml) instead of editing the example.
+# See docs/ops/onboard-municipality.md.
+
+host: vranov.localhost            # bare host name, the DNS name residents use
+secondary_hosts: []               # optional extra names that serve the same organization
+name:
+  sk: Mesto Vranov nad Topľou
+  en: Town of Vranov nad Topľou
+short_name: Vranov                # 3..12 characters (Decidim system rule)
+default_locale: sk
+available_locales: [sk, en]
+time_zone: Bratislava
+reference_prefix: VRN             # prefix of Decidim reference numbers
+users_registration_mode: enabled  # enabled | existing | disabled
+ico: "00313271"                   # example only: use the municipality's own IČO (8 digits, checksum verified)
+admin_email: contracts-admin@example.org
+admin_name: Administrátor zmlúv
