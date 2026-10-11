@@ -87,7 +87,11 @@ module CivoraOnboard
 
     private
 
+    # argv form (no shell); both values are re-derived from strict parses so
+    # nothing caller-supplied reaches the rake argument list verbatim.
     def run_rake_task(organization_id, since)
+      organization_id = Integer(organization_id)
+      since = Time.iso8601(since.to_s).utc.iso8601
       output, status = Open3.capture2e(
         { "DISABLE_SPRING" => "1" },
         Rails.root.join("bin/rails").to_s,
