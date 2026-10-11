@@ -9,6 +9,9 @@
 # Pridajte sa, zapojte sa a rozhodujte.") invites citizens to participate
 # and decide, which a contracts register does not offer.
 sk:
+  civora:
+    footer:
+      accessibility: Vyhlásenie o prístupnosti
   decidim:
     pages:
       home:

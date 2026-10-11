@@ -188,6 +188,7 @@ Secrets handling, environments, backup/restore, logging, observability, incident
 
 - [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
 - [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
+- [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) — accessibility statement (sk + en) as a Decidim static page, idempotent `civora:accessibility_statement:publish`, footer link, open items (#133)
 - [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
 - [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) — idempotent demo seed `civora:demo:proposal_to_contract`: proposal, budget project, result and the linked contract (#132)
 - [`docs/ops/demo-server.md`](docs/ops/demo-server.md) — public demo server on a ~5 EUR/month VPS: `bin/demo-provision`, `bin/demo-deploy`, Caddy TLS overlay (`compose.tls.yml`, #168), demo-only safety, nightly reset, teardown
