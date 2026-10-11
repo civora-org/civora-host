@@ -150,7 +150,7 @@ scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /contracts -> 200
 The engine stays markup-only; everything that makes the shell look and read like Civora lives here:
 
 - **Visual identity**: organization colours, logo and the print layer — [`docs/appearance.md`](docs/appearance.md) and `app/packs/stylesheets/decidim/decidim_application.scss`.
-- **Header** (`app/views/layouts/decidim/header/_main_links_desktop.html.erb`): Help and **Zmluvy** (the catalogue) instead of Meetings and Activity, which carry no content on a contracts-only platform.
+- **Header** (`app/views/layouts/decidim/header/_main_links_desktop.html.erb`): Help and **Zmluvy** (the catalogue) instead of Meetings and Activity, which carry no content on a contracts-only platform. A **Participácia** link and a second hero button lead to the processes when the town has published ones (`docs/ops/participation-navigation.md`).
 - **Topbar search** (`app/views/layouts/decidim/header/_main_search.html.erb`): submits to the catalogue's own `q` filter; Decidim's global search indexes participatory spaces, which this platform has none of.
 - **Footer** (`app/views/layouts/decidim/footer/_main_links.html.erb`): Resources is Open Data only; the Help column renders only when help topics are configured for the footer.
 - **Locale** (`config/locales/sk.yml`): fixes decidim-core 0.31.7's "Vitajte na%{organization}" (missing space) and replaces the participation call to action in the footer with contracts-register copy.

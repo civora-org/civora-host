@@ -3,7 +3,12 @@
     desktop header). Civora is a contracts platform: the unused Meetings and
     Activity links are replaced with the contracts catalogue, which is the
     product's public surface (the :menu registry item only reaches the footer
-    and the breadcrumb dropdown). %>
+    and the breadcrumb dropdown). A "Participation" link to the processes index
+    follows, shown only when the organization has processes a visitor can open
+    (ParticipationNavigation). The mobile menu needs no override: Decidim's
+    :mobile_menu registry already lists the processes. Drift: this partial is
+    the 0.31.7 core one with the Meetings/Activity block replaced and the
+    account block untouched; compare against the gem on a Decidim bump. %>
 <div>
   <%= link_to decidim.pages_path, class: "main-bar__links-desktop__item", "aria-label": t("decidim.menu.help") do %>
     <%= icon "question-line" %><span><%= t("decidim.menu.help") %></span>
@@ -14,6 +19,14 @@
     <%= icon "file-text-line" %><span><%= t("decidim.contracts_sk.menu.contracts") %></span>
   <% end %>
 </div>
+
+<% if ParticipationNavigation.processes?(current_organization, current_user, request.env) %>
+  <div>
+    <%= link_to ParticipationNavigation.path, class: "main-bar__links-desktop__item", "aria-label": t("civora.menu.participation") do %>
+      <%= icon "group-line" %><span><%= t("civora.menu.participation") %></span>
+    <% end %>
+  </div>
+<% end %>
 
 <% if !current_user %>
   <div>

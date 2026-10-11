@@ -1,0 +1,18 @@
+<%# Host override of decidim-core 0.31.7 content_blocks/hero/cta_button.erb:
+    the original primary CTA (the contracts catalogue, set by db/seeds.rb or
+    the content-block settings) is kept verbatim, and a second CTA to the
+    participatory processes index is added when the organization has any
+    (ParticipationNavigation). The wrapper rule lives in
+    app/packs/stylesheets/decidim/decidim_application.scss. %>
+<div class="hero__cta">
+  <%= link_to cta_button_path, id: "hero-cta", class: "button button__lg md:button__xl button__secondary", title: t("decidim.pages.home.hero.participate_title") do %>
+    <span><%= cta_button_text %></span>
+    <%= icon "login-box-line" %>
+  <% end %>
+  <% if ParticipationNavigation.processes?(current_organization, current_user, controller.request.env) %>
+    <%= link_to ParticipationNavigation.path, id: "hero-cta-processes", class: "button button__lg md:button__xl button__primary" do %>
+      <span><%= t("civora.home.hero.processes") %></span>
+      <%= icon "group-line" %>
+    <% end %>
+  <% end %>
+</div>

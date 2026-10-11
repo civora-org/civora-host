@@ -12,6 +12,11 @@ sk:
   civora:
     footer:
       accessibility: Vyhlásenie o prístupnosti
+    home:
+      hero:
+        processes: Participácia
+    menu:
+      participation: Participácia
   decidim:
     pages:
       home:
@@ -19,6 +24,9 @@ sk:
           footer_sub_hero_body_html: Verejné zmluvy, ich dokumenty a zmeny na jednom mieste.<br /> Prehľadne a dohľadateľne pre každého.
           footer_sub_hero_headline: Vitajte na platforme %{organization}.
         hero:
+          # Core's "Podieľajte sa na procesoch platformy" is the tooltip of the
+          # primary CTA, which here leads to the contracts catalogue.
+          participate_title: Prezrieť verejné zmluvy
           welcome: Vitajte na platforme %{organization}!
   two_factor:
     gate:
