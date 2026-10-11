@@ -1,6 +1,6 @@
 # Public demo server
 
-One documented command sequence turns a fresh small VPS into `https://demo.civora.sk` (the domain is a placeholder, set your own in `.env`): the host app with the engine (pinned in the `Gemfile`, currently v1.7.1), a Caddy TLS terminator with automatic Let's Encrypt certificates, and **demo data only**.
+One documented command sequence turns a fresh small VPS into `https://demo.civora.sk` (the domain is a placeholder, set your own in `.env`): the host app with the engine (pinned in the `Gemfile`, currently v1.8.0), a Caddy TLS terminator with automatic Let's Encrypt certificates, and **demo data only**.
 
 Background: [ADR-011](https://github.com/civora-org/civora-platform) (hosting model), [civora-platform#168](https://github.com/civora-org/civora-platform/issues/168) (TLS terminator and `DECIDIM_FORCE_SSL`). The TLS part is a separate reusable overlay, see [TLS terminator](#tls-terminator-also-for-production).
 
