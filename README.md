@@ -1,229 +1,276 @@
 # Civora host app
 
-The [Civora](https://github.com/civora-org) host application: a [Decidim](https://decidim.org) 0.31.7 install with the [`decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk) engine (Slovak public contracts workflow & catalogue) mounted at `/contracts`.
+The Civora host application. It is a [Decidim](https://decidim.org) 0.31.7 install that mounts the [`decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk) engine at `/contracts`. The engine provides the Slovak public contracts workflow and catalogue. This repository adds the deployment, the Slovak-first shell and the operations tooling around it.
 
-Part of the Civora platform; issues are tracked in [`civora-org/civora-platform`](https://github.com/civora-org/civora-platform), not here.
+Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.com/civora-org/civora-platform), not in this repository.
 
-## Pilot release
+## Status
 
-The first release offered to municipalities is a **pilot**: one organization per stack, Slovak UI, a 3-month run on real (public) contract data.
+- **No production deployment exists yet.** Hosting for a municipality is provisioned when a pilot is close. Until then the stack runs locally in Docker.
+- A **public demo** is documented in [`docs/ops/demo-server.md`](docs/ops/demo-server.md). It uses fictional data only and is wiped regularly. Nothing real may be put on it.
+- The engine is pinned to a release tag, [v1.7.1](https://github.com/civora-org/decidim-contracts_sk/releases). The engine release notes are in its [CHANGELOG](https://github.com/civora-org/decidim-contracts_sk/blob/main/CHANGELOG.md).
+
+## Versions
 
 | Component | Version |
 |---|---|
-| Decidim | 0.31.7 |
-| `decidim-contracts_sk` | **v1.7.1** (contract workflow, four-eyes review, privacy-redaction gate, audit trail, CRZ deadline tracking and filing confirmation, admin home, CRZ mirror import scoped to the organization's IČO, workflow notifications, role assignment, internal notes, contract templates, spreadsheet import; public results-first catalogue with filters and sorting, supplier pages, statistics, CSV/JSON open-data export, Atom feed, e-mail search alerts, SEO meta and sitemap; a Decidim component for participatory spaces) |
-| Ruby / Postgres | 3.3.4 / 17 |
+| Decidim | 0.31.7 (the engine also supports 0.32; this host is not on 0.32 yet) |
+| `decidim-contracts_sk` | v1.7.1 (pinned in the `Gemfile`) |
+| Ruby | 3.3.4 (`.ruby-version`) |
+| Node.js | 22.14.0 (`.node-version`, for Shakapacker) |
+| PostgreSQL | 17 (Compose and CI) |
+| Redis | 7 (Compose; required by the production Action Cable config) |
 
-What a pilot stack serves:
+## What the host adds to Decidim
 
-- `/contracts`: public catalogue (search, register of published contracts with amounts) and contract detail (facts panel, parties, documents, version history, CRZ provenance notice);
-- `/contracts/admin/contracts`: the editor/reviewer workflow (draft → review → redaction confirmation → publish → amendments), the CRZ import and `/contracts/admin/audit_events`;
-- a Slovak-first Decidim shell: contracts-only header and footer, institutional palette and logo (see [Customisations](#customisations-over-decidim)).
+- **Slovak-first shell**: contracts-only header and footer, the organisation's colours and logo, and a Slovak locale fix. See [Customisations](#customisations-over-decidim).
+- **Participation links**: contracts can be linked to Accountability results and Budgets projects, and the linked contracts appear on those pages.
+- **Admin second factor**: TOTP for admins and engine role holders, wired into the engine's second-factor seam. See [`docs/ops/two-factor.md`](docs/ops/two-factor.md).
+- **Nightly CRZ sync**: a scheduler service imports the organisation's CRZ mirrors. See [`docs/ops/crz-sync.md`](docs/ops/crz-sync.md).
+- **Accessibility statement**: a Slovak and English static page with a footer link. See [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md).
+- **Operations tooling**: backups, a backup-gated deploy, restore drills, observability and secrets handling. See [Operations](#operations).
 
-Before the first pilot deploy, work through the [pilot readiness checklist](#pilot-readiness-checklist).
+## Stack
 
-## Requirements
+`compose.yaml` defines the base stack:
 
-- Ruby **3.3.4** (see `.ruby-version`)
-- Node.js **22.14.0** (see `.node-version`) — for Shakapacker asset compilation
-- PostgreSQL (14+ recommended), reachable at `localhost:5432` by default
-- Network access to GitHub: the engine is consumed as a tagged git source from the public [`civora-org/decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk), no account or token needed
+| Service | Image | Purpose |
+|---|---|---|
+| `app` | built from `Dockerfile` (`ruby:3.3.4-slim`, non-root user) | Rails and Decidim on port 3000. The entrypoint runs `db:prepare` and `db:seed` before starting the Rails server |
+| `scheduler` | same image | Nightly CRZ sync loop (03:30 Europe/Bratislava). Runs `scripts/crz_sync_scheduler.sh` |
+| `db` | `postgres:17` | Production database |
+| `redis` | `redis:7-alpine` | Action Cable |
 
-## Setup
+Overlays are selected with `COMPOSE_FILE` in `.env`, or with `-f`:
+
+| File | Purpose |
+|---|---|
+| `compose.dev.yml` | Bind-mount development loop: `docker compose -f compose.yaml -f compose.dev.yml up` |
+| `compose.tls.yml` | Caddy in front of the app with automatic Let's Encrypt certificates. Requires `SITE_ADDRESS` and `ACME_EMAIL` |
+| `compose.observability.yml` | Self-hosted error tracking (GlitchTip), metrics (Prometheus), alerting (Alertmanager) and blackbox probes. See [`docs/ops/observability.md`](docs/ops/observability.md) |
+| `compose.demo.yml` | Public demo overlay (`DEMO_MODE=1`, no CRZ, mail written to files). Used with `compose.tls.yml` |
+| `compose.drill.yml` | Throwaway overlay for `scripts/restore_drill.sh` |
+
+## Local development
+
+Without Docker, using a host Ruby and a local PostgreSQL:
 
 ```bash
 bundle install
 DISABLE_SPRING=1 bin/rails db:create db:migrate db:seed
 
-# one-time: install the gitleaks pre-commit hook (secret scanning)
-scripts/install-hooks.sh    # requires `brew install gitleaks` (or equivalent)
+# one-time: gitleaks pre-commit hook (requires gitleaks, e.g. `brew install gitleaks`)
+scripts/install-hooks.sh
+
+bin/dev    # Rails on 0.0.0.0:3000 and the Shakapacker dev server (Procfile.dev)
 ```
 
-Database connection is env-driven (`config/database.yml`):
-`DATABASE_HOST` (default `localhost`), `DATABASE_PORT` (5432), `DATABASE_USERNAME`/`DATABASE_PASSWORD` (blank = local socket/peer auth), `DATABASE_URL` (production).
+Database settings come from the environment (`config/database.yml`): `DATABASE_HOST` (default `localhost`), `DATABASE_PORT` (5432), `DATABASE_USERNAME` and `DATABASE_PASSWORD` (blank means socket or peer authentication), and `DATABASE_URL` in production.
 
-> **`DISABLE_SPRING=1`** — prefix host-app `rails`/`rake` commands with it; the Spring daemon otherwise swallows long-running tool sessions.
+Prefix host-app `rails` and `rake` commands with `DISABLE_SPRING=1`. The Spring daemon otherwise keeps long-running sessions alive.
 
-## Development
+Smoke checks once the app runs:
+
+| Path | Expected |
+|---|---|
+| `GET /up` | Rails liveness check (200) |
+| `GET /healthz` | Database and Redis check. Returns 503 with a JSON status on failure |
+| `GET /contracts` | Public catalogue of the engine |
+
+## Docker quickstart
+
+Requires Docker with Compose v2 and network access to GitHub. The engine is fetched from its public repository at build time.
 
 ```bash
-bin/dev        # rails server (0.0.0.0:3000) + Shakapacker dev server (Procfile.dev)
+cp .env.example .env
+# set SECRET_KEY_BASE (openssl rand -hex 64) and POSTGRES_PASSWORD (openssl rand -hex 16)
+# leave GITHUB_TOKEN empty unless you build a private fork
+
+docker compose up -d --build
+curl -fsS http://localhost:3000/contracts   # expect 200
 ```
 
-Smoke checks once running:
+A GitHub token is passed as a BuildKit secret mount, never as a build argument, so it does not appear in the image history or layers.
 
-- `GET /up` — Rails health endpoint (also the uptime target for monitoring)
-- `GET /healthz` — deep health check: database + Redis connectivity (also a monitored probe; 503 + JSON status on failure)
-- `GET /contracts` — the contracts engine's public catalogue
+A clean-state smoke test runs the whole sequence (`down -v`, build, wait for healthy, `GET /contracts`):
+
+```bash
+scripts/smoke_test.sh
+```
+
+## Configuration
+
+Copy `.env.example` to `.env`. Never commit `.env`. The full variable inventory and the rotation procedure are in [`docs/ops/secrets.md`](docs/ops/secrets.md).
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `SECRET_KEY_BASE` | yes | Rails secret. Rotating it invalidates encrypted data, so every TOTP enrolment must be reset with `two_factor:reset_all` (see [two-factor](docs/ops/two-factor.md)) |
+| `POSTGRES_PASSWORD` | yes | Password of the `postgres` user in the Compose database |
+| `DECIDIM_ORG_HOST` | before the first pilot boot | Host name the seeded organisation answers on (default `localhost`) |
+| `GITHUB_TOKEN` | private forks only | Read access to a private engine fork during the build |
+| `SMTP_*` | at the first real deploy | Production mail. Not configured yet |
+| `CRZ_ICO_ORG_<organization id>` | to run the CRZ import | The organisation's IČO. Without it the import refuses to run |
+| `CRZ_SYNC_INITIAL_SINCE` | optional | First-run cursor for the CRZ sync (default: 7 days ago) |
+| `CRZ_SYNC_PUSHGATEWAY_URL` | optional | Dead-man push target for the sync (default: the in-network pushgateway) |
+| `ACTOR_EMAIL` | optional | Pins the admin account used as audit actor by the CRZ sync (default: the first admin who accepted the terms) |
+| `GLITCHTIP_SECRET_KEY`, `GLITCHTIP_DB_PASSWORD` | with the observability overlay | Required by the GlitchTip services |
+| `SENTRY_DSN`, `GLITCHTIP_DOMAIN`, `PUSHGATEWAY_URL` | optional | Error tracking and metrics wiring |
+| `ALERT_*` | with the observability overlay | Alert delivery: Telegram for critical and high alerts, e-mail for all |
+| `SITE_ADDRESS`, `ACME_EMAIL` | with `compose.tls.yml` | Public host name and Let's Encrypt contact |
+
+One Compose setting is deliberate for now: `DECIDIM_FORCE_SSL: "0"` in `compose.yaml`, because the base stack has no TLS terminator. Remove it once a reverse proxy terminates HTTPS, or use `compose.tls.yml`.
 
 ## Working on the engine alongside this app
 
-The Gemfile pins the engine deterministically:
+The `Gemfile` pins the engine to a tag:
 
 ```ruby
 gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.7.1"
 ```
 
-To hack on the engine locally, use Bundler's local override (never commit it):
+To work on a local engine checkout, use a Bundler local override. Never commit it:
 
 ```bash
 bundle config set --local local.decidim-contracts_sk /path/to/decidim-contracts_sk
-# …and check the engine out at the pinned revision first:
-git -C /path/to/decidim-contracts_sk checkout v1.7.1
+git -C /path/to/decidim-contracts_sk checkout v1.7.1   # Bundler refuses any other revision
 
-# when done:
+# when done
 bundle config unset --local local.decidim-contracts_sk
 ```
 
-The local checkout **must** sit at the pinned revision, otherwise Bundler refuses — that is deliberate: the host always boots a reproducible engine version. Advancing the engine means cutting an engine release and bumping the tag here.
+Inside Docker, use a personal, untracked `docker-compose.override.yml` that mounts the engine checkout read-only at `/opt/decidim-contracts_sk`. Compose loads that file automatically, so pass `-f compose.yaml` explicitly when you want to run the built image.
 
-Inside Docker, the same loop works with a personal, untracked `docker-compose.override.yml` that bind-mounts the engine checkout (read-only) at `/opt/decidim-contracts_sk` and swaps in a Gemfile using `path: "/opt/decidim-contracts_sk"`. Docker Compose loads an override file automatically, so run the real image with `docker compose -f compose.yaml …` (or pin `COMPOSE_FILE` in `.env`) whenever you are not developing the engine.
+## Upgrading the engine
 
-### Upgrading the engine
-
-1. Cut the engine release (release-please PR in the engine repo) and bump `tag:` in the `Gemfile`.
-2. `bundle lock --update decidim-contracts_sk --conservative`; review the lock diff and run `bundler-audit`.
-3. Copy every **new** engine migration into `db/migrate/` **verbatim, keeping its original timestamp**, named `<timestamp>_<name>.decidim_contracts_sk.rb` (the vendored-migration pattern, excluded from rubocop):
+1. Cut an engine release and bump `tag:` in the `Gemfile`.
+2. Run `bundle lock --update decidim-contracts_sk --conservative`, review the lock diff and run `bundler-audit`.
+3. Copy each **new** engine migration into `db/migrate/` verbatim, with its original timestamp and the `.decidim_contracts_sk.rb` suffix. Take it from the tag:
    ```bash
    git -C ../decidim-contracts_sk show v1.7.1:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
    ```
-   Do **not** use `bin/rails decidim_contracts_sk:install:migrations` here: it re-stamps the timestamps, and databases that already ran the engine migrations would run them again.
+4. Do **not** run `bin/rails decidim_contracts_sk:install:migrations` here. It re-stamps timestamps, and a database that already ran the engine migrations would run them again.
+5. Migrate, commit the regenerated `db/schema.rb` (its diff should contain only the engine's tables, columns and the version), rebuild the image and walk through the [demo test plan](docs/qa/demo-test-plan.md).
 
-   v1.7.1 ships four migrations, copied verbatim with their original timestamps: `20261006000001` (`decidim_contracts_sk_user_roles`), `20261006000002` (`decidim_contracts_sk_notes`), `20261006000003` (`decidim_contracts_sk_templates`), `20261006000004` (`decidim_contracts_sk_subscriptions`). Host follow-ups that come with it: schedule the e-mail alerts digest task and configure SMTP (engine `docs/search-alerts.md`); reference `/contracts/sitemap.xml` from `robots.txt`; optionally wire the related-contracts block into Decidim result/project pages (engine `docs/related-contracts.md`, civora-org/civora-platform#130/#131) and add the "Zmluvy" component to a participatory space (engine `docs/decidim-component.md`).
-
-   v1.5.0 ships two migrations, both reversible:
-   - `20261003000001_add_submitted_by_to_decidim_contracts_sk_contracts.rb` (four-eyes, [civora-org/civora-platform#123](https://github.com/civora-org/civora-platform/issues/123)) adds the nullable `decidim_submitted_by_id` column and backfills it from the audit trail (the actor of each contract's latest `contract.submit` row), so contracts already in review stay blocked for their submitter.
-   - `20261003000002_add_crz_filing_to_decidim_contracts_sk_contracts.rb` (CRZ filing confirmation, [civora-org/civora-platform#125](https://github.com/civora-org/civora-platform/issues/125)) adds three nullable columns: `crz_filed_at`, `crz_published_on`, `crz_filing_reason`. No backfill.
-
-   Behaviour change in v1.5.0: the CRZ deadline badge now clears only when the filing is confirmed through the admin action *Record CRZ filing*. Records that only carry a hand-typed `crz_url` show the badge again until someone confirms them.
-4. Run the migrations and commit the regenerated `db/schema.rb`; its diff must contain only the engine's tables, columns and the version.
-5. Rebuild the image and walk §0–§3 of the [demo test plan](docs/qa/demo-test-plan.md).
+Check the engine's `CHANGELOG.md` and its `docs/` for host follow-ups for each release.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on every PR and push to `main`: rubocop, minitest (Postgres 17 service, matching production), brakeman (`--exit-on-warn`, one documented ignore for the upstream-pinned EOL Rails warning — `config/brakeman.ignore`), bundler-audit (per-advisory ignores in `.bundler-audit.yml`, all provably upstream-blocked with revisit conditions), and a full-history gitleaks secret scan (`.gitleaks.toml`).
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and on pushes to `main`:
 
-The workflow still checks the engine out with the `ENGINE_READ_TOKEN` secret (fine-grained PAT, Contents: read-only on `civora-org/decidim-contracts_sk`). That is a leftover from when the engine repository was private: it is public now, and the token and the workflow's `insteadOf` steps can be dropped. Until then — rotate it in GitHub → Settings → Developer settings → Fine-grained tokens, then `gh secret set ENGINE_READ_TOKEN --repo civora-org/civora-host`.
+- RuboCop;
+- Minitest against PostgreSQL 17;
+- Brakeman with `--exit-on-warn` and one documented ignore for the upstream-pinned end-of-life Rails warning (`config/brakeman.ignore`);
+- `bundler-audit`, with per-advisory ignores that are blocked upstream, each with a revisit condition (`.bundler-audit.yml`);
+- a full-history gitleaks scan (`.gitleaks.toml`).
 
-## Docker
+The workflow still uses an `ENGINE_READ_TOKEN` secret to check out the engine. The engine repository is public, so that token is no longer needed and the checkout steps can be removed.
 
-Production-baseline container stack (tracked as `civora-org/civora-platform#48`):
+## Onboarding a municipality
 
-- **`Dockerfile`** — multi-stage build on `ruby:3.3.4-slim` (matching the pinned Ruby). The builder stage installs the toolchain and compiles assets; the runtime stage has no build tools, runs as non-root user `rails` (UID 1000), and ships only runtime libs (`libpq5`, `libjemalloc2`, `libicu`, ImageMagick/Vips).
-- **`compose.yaml`** — prod-baseline stack: `app` + Postgres 17 + Redis (required by the production ActionCable config). Healthchecks on all three services (`/up` for the app). Migrations and the idempotent seed run on boot via `bin/docker-entrypoint`.
-- **`compose.dev.yml`** — overlay restoring the bind-mount dev loop:
-  `docker compose -f compose.yaml -f compose.dev.yml up`
-
-> A personal `docker-compose.override.yml` (see [Working on the engine](#working-on-the-engine-alongside-this-app)) is picked up by every plain `docker compose` command. Pass `-f compose.yaml` explicitly, or pin `COMPOSE_FILE` in `.env`, to be sure you run the built image.
-
-### Build & run (clean machine)
-
-Prerequisites: Docker with Compose v2 and network access to GitHub (the engine gem is fetched from the public repository at build time). A GitHub token is only needed for private forks.
+The hosting model is one stack per city (ADR-011). Onboarding is scripted and idempotent, keyed by the organisation id. See [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) for the full procedure, including the steps that stay manual (DNS, TLS and the people).
 
 ```bash
-cp .env.example .env                       # then fill in:
-#   POSTGRES_PASSWORD=<random hex>        (openssl rand -hex 16)
-#   SECRET_KEY_BASE=<random hex>          (openssl rand -hex 64)
-#   GITHUB_TOKEN=                         (leave empty; only for private forks, token with Contents: read)
-
-GITHUB_TOKEN="$(grep GITHUB_TOKEN .env | cut -d= -f2)" docker compose up -d --build
-curl -fsS http://localhost:3000/contracts  # -> 200
+bin/rails "civora:onboard:organization[config/onboarding/<city>.yml]"
+bin/rails "civora:onboard:crz_sync[<organization_id>,<SINCE ISO8601>]"   # rate-limit aware, resumable
+bin/rails "civora:onboard:verify[<organization_id>]"
 ```
 
-If you do set a token (private fork), it is passed as a BuildKit **secret mount**, never a build arg — it is not present in image history or layers (verified with `docker history --no-trunc` / `docker save | grep`).
+`config/onboarding/example.yml` is the template. It uses `example.org` addresses only.
 
-A full clean-state smoke test is available:
+After onboarding, the pilot checklist in short:
 
-```bash
-scripts/smoke_test.sh   # down -v -> build -> healthy -> GET /contracts -> 200
-```
-
-### Current limitations
-
-- `DECIDIM_FORCE_SSL=0` is set in `compose.yaml` because the base stack has no TLS terminator; the `compose.tls.yml` overlay (Caddy, automatic Let's Encrypt, `DECIDIM_FORCE_SSL=1`, [`docs/ops/demo-server.md`](docs/ops/demo-server.md)) provides one.
-- Migrations run on boot (`db:prepare`) — acceptable for a single instance, not for replicated setups.
-- Built for the host architecture only; multi-arch (buildx) is a follow-up.
-- The engine gem is fetched from GitHub at build time, so builds need network access; the tag pin (`v1.7.1`) keeps the result deterministic.
-
-## Customisations over Decidim
-
-The engine stays markup-only; everything that makes the shell look and read like Civora lives here:
-
-- **Visual identity**: organization colours, logo and the print layer — [`docs/appearance.md`](docs/appearance.md) and `app/packs/stylesheets/decidim/decidim_application.scss`.
-- **Header** (`app/views/layouts/decidim/header/_main_links_desktop.html.erb`): Help and **Zmluvy** (the catalogue) instead of Meetings and Activity, which carry no content on a contracts-only platform.
-- **Topbar search** (`app/views/layouts/decidim/header/_main_search.html.erb`): submits to the catalogue's own `q` filter; Decidim's global search indexes participatory spaces, which this platform has none of.
-- **Footer** (`app/views/layouts/decidim/footer/_main_links.html.erb`): Resources is Open Data only; the Help column renders only when help topics are configured for the footer.
-- **Locale** (`config/locales/sk.yml`): fixes decidim-core 0.31.7's "Vitajte na%{organization}" (missing space) and replaces the participation call to action in the footer with contracts-register copy.
-- **Homepage hero** (`db/seeds.rb`): welcome text and a "Prezrieť zmluvy" button into `/contracts`, en + sk, idempotent.
-
-- **Participation link** (civora-org/civora-platform#130, #131): contracts can be linked to Accountability results and Budgets projects, and the linked published contracts are listed on those Decidim pages. Organization-scoped resolver in `app/lib/participation_link_resolver.rb`, wired in `config/initializers/contracts_sk.rb`; two view overrides (`app/views/decidim/accountability/results/_project.html.erb`, `app/views/decidim/budgets/projects/show.html.erb`). To link in the admin: edit a contract at `/contracts/admin/contracts`, **Links** card, pick the target type and enter the numeric id from the result or project URL. See [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
-
-- **Admin second factor** (civora-org/civora-platform#164, ADR-010): admins and engine role holders pass a TOTP code after their password before any admin surface opens; enrolment with QR code and recovery codes, throttling, operator reset. Host-owned (`app/lib/two_factor`, `app/controllers/two_factor`, three `civora_two_factor_*` tables, `config/initializers/two_factor.rb`), plugged into the engine's `second_factor_*` seam. See [`docs/ops/two-factor.md`](docs/ops/two-factor.md).
-
-These override decidim-core 0.31.7 partials by path: re-check them on every Decidim upgrade. The two participation-link views are decidim-accountability / decidim-budgets 0.31.7 copies; a test fails when they drift from the installed gems.
+1. Give the stack its own host name and HTTPS, then remove `DECIDIM_FORCE_SSL: "0"`.
+2. Create a fresh database on the pilot host. A pilot is never a copy of the demo database.
+3. Create the system admin, then set the default locale to `sk` and the organisation's logo and colours in `/system`.
+4. Invite the municipality's admins. Each one enrols a second factor before using the admin. Check with `bin/rails two_factor:status`.
+5. Make sure the pilot has at least two people with engine roles. The person who submits a contract cannot approve, return or reject it. A single-person municipality must opt out explicitly with `Decidim::ContractsSk.allow_self_review = true` in `config/initializers/contracts_sk.rb`. Self-reviews are then audited.
+6. Schedule the CRZ sync, the search-alert digest (`decidim_contracts_sk:subscriptions:deliver`, daily) and the backups, and log one restore drill.
+7. Walk the demo test plan on the pilot stack with `MANUAL-2026-` records, then archive them.
 
 ## Demo and QA
 
-- **Demo data:** `bin/rails "decidim_contracts_sk:seed_demo[<organization_id>]"` seeds fictional contracts in every lifecycle state (idempotent). Never run it on a pilot database.
-- **Demo admins:** `contracts-admin@example.org` and `contracts-editor@example.org`; the seed sets random passwords. With the four-eyes rule (engine v1.5.0 onwards), one admin cannot judge their own submission. Submit as `contracts-editor@example.org` and return, approve or reject as `contracts-admin@example.org`. Reset them locally and keep them in `tmp/demo-admin-credentials.txt` (gitignored) — never in a committed file.
-- **Manual test plan:** [`docs/qa/demo-test-plan.md`](docs/qa/demo-test-plan.md), the click-through for every release. Test records use the `MANUAL-2026-` prefix and are archived at the end of a run, because the demo database is also the sales demo and the source of the civora.sk screenshots ([`civora-org/civora-site`](https://github.com/civora-org/civora-site)).
+- **Demo data**: `bin/rails "decidim_contracts_sk:seed_demo[<organization_id>]"` seeds fictional contracts in every lifecycle state. It is idempotent. Never run it on a pilot database.
+- **Demo admins**: `contracts-admin@example.org` and `contracts-editor@example.org`. The seed sets random passwords, stored in the git-ignored `tmp/demo-admin-credentials.txt`. Under the four-eyes rule, submit as the editor and decide as the admin.
+- **Test plan**: [`docs/qa/demo-test-plan.md`](docs/qa/demo-test-plan.md) is the click-through run for each release. Test records use the `MANUAL-2026-` prefix and are archived after each run, because the demo database also supplies screenshots for [civora-org/civora-site](https://github.com/civora-org/civora-site).
 
-## Pilot readiness checklist
+## Customisations over Decidim
 
-A pilot stack is a fresh database on its own host — never a copy of the demo database.
+The engine provides markup only. The Civora look and content live in this repository:
 
-1. **Host and TLS:** a domain for the municipality and a reverse proxy terminating HTTPS in front of `app`; then remove `DECIDIM_FORCE_SSL: "0"` from `compose.yaml` (see [Current limitations](#current-limitations)).
-2. **Environment:** `.env` from `.env.example` with fresh secrets (`openssl rand -hex 64` / `-hex 16`), `DECIDIM_ORG_HOST=<pilot domain>` so the seeded organization answers on it, and SMTP configured (password resets and invitations need mail).
-3. **First boot:** `scripts/deploy.sh` (backup-gated build, migrate, seed, smoke). Then `docker compose exec app bin/rails decidim_system:create_admin` for the system admin, and in `/system`: organization name, **default locale `sk`** (the seed defaults to `en`), the municipality's logo and colours.
-4. **People:** invite the municipality's admins from `/admin` → Participants → Admins, then have each of them sign in and **enrol their second factor** (`bin/rails two_factor:status` must show `0 of N not enrolled`; see [`docs/ops/two-factor.md`](docs/ops/two-factor.md)). Organization admins hold both engine roles (editor and reviewer) by default; narrow that with `Decidim::ContractsSk.role_resolver` in an initializer if the municipality separates the roles. From engine v1.5.0 onwards ([civora-org/civora-platform#123](https://github.com/civora-org/civora-platform/issues/123)), the person who submits a contract for review can never return, approve or reject it. The pilot therefore needs **at least two people with engine roles**. A one-person municipality must opt out explicitly in `config/initializers/contracts_sk.rb`; its self-reviews are then audited as `contract.approve_self` / `return_self` / `reject_self`:
-   ```ruby
-   Decidim::ContractsSk.allow_self_review = true
-   ```
-   The setting exists from engine v1.5.0; an older pin does not define it and would fail to boot.
-5. **Content:** import the municipality's existing CRZ contracts (`bin/rails "decidim_contracts_sk:crz_import:sync[<organization_id>,<SINCE ISO8601>]"`), schedule it nightly, and add the terms-of-service page and a privacy notice in `/admin` → Pages.
-6. **Operations:** observability overlay on (`COMPOSE_FILE` in `.env`), backups scheduled and one restore drill logged ([`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md)), alert webhook set.
-7. **Acceptance:** walk the [demo test plan](docs/qa/demo-test-plan.md) on the pilot stack with `MANUAL-2026-` records, then archive them.
+| Area | Where |
+|---|---|
+| Colours, logo and print layer | [`docs/appearance.md`](docs/appearance.md), `app/packs/stylesheets/decidim/decidim_application.scss` |
+| Header: Help and Zmluvy (the catalogue) instead of Meetings and Activity | `app/views/layouts/decidim/header/_main_links_desktop.html.erb` |
+| Topbar search: submits to the catalogue's `q` filter | `app/views/layouts/decidim/header/_main_search.html.erb` |
+| Footer: Resources holds Open Data only | `app/views/layouts/decidim/footer/_main_links.html.erb` |
+| Slovak locale fix and footer copy | `config/locales/sk.yml` |
+| Homepage hero, en and sk, idempotent | `db/seeds.rb` |
+| Participation links: resolver and two view overrides | `app/lib/participation_link_resolver.rb`, `app/views/decidim/accountability/results/_project.html.erb`, `app/views/decidim/budgets/projects/show.html.erb` |
+| Admin second factor | `app/lib/two_factor`, `app/controllers/two_factor`, `config/initializers/two_factor.rb` |
+| Engine configuration seams | `config/initializers/contracts_sk.rb` |
+
+The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.31.7 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views drift from the installed gems.
+
+Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
 
 ## Operations
 
-Secrets handling, environments, backup/restore, logging, observability, incident response and security updates are documented under `docs/ops/`:
+### Documentation
 
-- [`docs/ops/secrets.md`](docs/ops/secrets.md) — secrets policy (env vars only; Rails credentials retired), full inventory, gitleaks guardrails, rotation procedure
-- [`docs/ops/environments.md`](docs/ops/environments.md) — dev/test/production definitions, parity notes, staging-on-paper
-- [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) — accessibility statement (sk + en) as a Decidim static page, idempotent `civora:accessibility_statement:publish`, footer link, open items (#133)
-- [`docs/ops/two-factor.md`](docs/ops/two-factor.md) — admin TOTP second factor: who must use it, the sign-in flow, lockout, operator reset (`two_factor:reset`), the audit table, `SECRET_KEY_BASE` rotation, known gaps (#164)
-- [`docs/ops/participation-link.md`](docs/ops/participation-link.md) — contract links to Accountability results and Budgets projects, view overrides, how to link in the admin
-- [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) — idempotent demo seed `civora:demo:proposal_to_contract`: proposal, budget project, result and the linked contract (#132)
-- [`docs/ops/demo-server.md`](docs/ops/demo-server.md) — public demo server on a ~5 EUR/month VPS: `bin/demo-provision`, `bin/demo-deploy`, Caddy TLS overlay (`compose.tls.yml`, #168), demo-only safety, nightly reset, teardown
-- [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) — scripted, idempotent municipality onboarding: `civora:onboard:organization`, `civora:onboard:crz_sync` (rate-limit resume), `civora:onboard:verify` (#140)
-- [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) — backup/restore procedures, deploy gate, scheduled operation
-- [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) — executed restore drills (quarterly + after script changes)
-- [`docs/ops/log-policy.md`](docs/ops/log-policy.md) — where logs live, rotation (Docker json-file + host logrotate), levels, privacy rules
-- [`docs/ops/observability.md`](docs/ops/observability.md) — self-hosted error tracking (GlitchTip), metrics (Prometheus), alerting (Alertmanager), backup dead-man switch, synthetic-failure tests
-- [`docs/ops/incident-response.md`](docs/ops/incident-response.md) — roles, severity and response targets, evidence preservation, GDPR art. 33 breach notification (sk templates)
-- [`docs/ops/security-updates.md`](docs/ops/security-updates.md) — patch cadence, emergency patches, review of the upstream-blocked advisories in `.bundler-audit.yml`
+| Document | Covers |
+|---|---|
+| [`docs/ops/secrets.md`](docs/ops/secrets.md) | Secrets policy, inventory, gitleaks guardrails, rotation |
+| [`docs/ops/environments.md`](docs/ops/environments.md) | Development, test, staging and production definitions. Staging is defined but not provisioned |
+| [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) | Scripted municipality onboarding |
+| [`docs/ops/demo-server.md`](docs/ops/demo-server.md) | Public demo server: provisioning, deploy, TLS, nightly reset, teardown |
+| [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) | Demo seed for a proposal, budget project, result and linked contract |
+| [`docs/ops/crz-sync.md`](docs/ops/crz-sync.md) | Nightly CRZ sync scheduler |
+| [`docs/ops/two-factor.md`](docs/ops/two-factor.md) | Admin TOTP: who must enrol, sign-in flow, lockout, operator reset |
+| [`docs/ops/participation-link.md`](docs/ops/participation-link.md) | Contract links to results and projects |
+| [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) | Accessibility statement and its publishing task |
+| [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) | Backup and restore procedures, deploy gate, scheduled operation |
+| [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) | Log of executed restore drills |
+| [`docs/ops/log-policy.md`](docs/ops/log-policy.md) | Where logs live, rotation, levels, privacy rules |
+| [`docs/ops/observability.md`](docs/ops/observability.md) | Error tracking, metrics, alerting, backup dead-man switch |
+| [`docs/ops/incident-response.md`](docs/ops/incident-response.md) | Roles, severity, response targets, breach notification (sk templates) |
+| [`docs/ops/security-updates.md`](docs/ops/security-updates.md) | Patch cadence, emergency patches, review of upstream-blocked advisories |
 
-Operational scripts:
+### Scripts
 
-```bash
-scripts/backup.sh            # pg_dump + attachments tar + manifest + sha256 -> backups/ (+ dead-man ping)
-scripts/backup_prune.sh      # retention: 7 daily / 4 weekly / 6 monthly
-scripts/deploy.sh            # backup-gated deploy: backup -> verify -> up -> smoke -> monitoring review
-scripts/restore_drill.sh     # full restore into an isolated stack, verified + logged
-scripts/install-hooks.sh     # gitleaks pre-commit hook
-```
+| Script | Purpose |
+|---|---|
+| `scripts/backup.sh` | `pg_dump`, attachments archive, manifest and checksums in `backups/`, plus the dead-man ping |
+| `scripts/backup_prune.sh` | Retention: 7 daily, 4 weekly and 6 monthly backups |
+| `scripts/deploy.sh` | Backup-gated deploy: backup, verify, up, smoke test, monitoring review. Deploys must use it |
+| `scripts/restore_drill.sh` | Restores into an isolated stack, verifies and logs the result |
+| `scripts/smoke_test.sh` | Clean-state build and smoke test |
+| `scripts/install-hooks.sh` | Installs the gitleaks pre-commit hook |
+| `scripts/crz_sync_run.sh`, `scripts/crz_sync_scheduler.sh` | Run one CRZ sync pass, and the scheduler loop used by the `scheduler` service |
 
-Deploys must go through `scripts/deploy.sh` — it aborts unless a verified backup was taken first (the "Backup completed" gate from the platform CI/CD plan) and re-checks deep health (`/healthz`) after the smoke test.
+`scripts/deploy.sh` aborts unless a verified backup has been taken first. It also re-checks `/healthz` after the smoke test.
 
-Self-hosted monitoring (GlitchTip, Prometheus, Alertmanager, blackbox probes, pushgateway) rides on a compose overlay. Compose file selection is driven by `COMPOSE_FILE` (read by docker compose from `.env`):
+### Rake tasks
 
-```bash
-echo 'COMPOSE_FILE=compose.yaml:compose.observability.yml' >> .env
-docker compose up -d
-```
+| Task | Purpose |
+|---|---|
+| `civora:onboard:organization[<config>]`, `civora:onboard:crz_sync[...]`, `civora:onboard:verify[...]` | Municipality onboarding |
+| `civora:accessibility_statement:publish[<organization_id>]` | Publish the accessibility statement (idempotent) |
+| `civora:demo:proposal_to_contract[<organization_id>]`, `civora:demo:prepare_server[...]` | Demo seeds |
+| `two_factor:status`, `two_factor:reset`, `two_factor:reset_all` | List second-factor enrolment; reset one or all users (see [two-factor](docs/ops/two-factor.md)) |
+| `decidim_contracts_sk:*` | Engine tasks: CRZ import, search-alert delivery, demo seed. See the [engine README](https://github.com/civora-org/decidim-contracts_sk#rake-tasks) |
 
-Without that line (and on machines without `compose.observability.yml`), plain `docker compose` and the ops scripts run the base stack only.
+### Backups and secrets
+
+Backups run from `scripts/backup.sh` and are pruned by `scripts/backup_prune.sh`. Restore procedures and drills are in [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) and [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md). Secrets come from environment variables only. Rails credentials are retired.
+
+## Known limitations
+
+- No production deployment exists yet. The stack has not run with real municipal data.
+- Migrations run on boot (`db:prepare`). That is acceptable for one instance, not for replicated setups.
+- The image is built for the host architecture only. Multi-architecture builds are a follow-up.
+- Builds fetch the engine from GitHub, so they need network access. The tag pin keeps the result deterministic.
+- The staging environment is defined but not provisioned.
 
 ## License
 
-AGPL-3.0, same as Decidim (see `LICENSE-AGPLv3.txt`).
+AGPL-3.0, the same licence as Decidim. See [`LICENSE-AGPLv3.txt`](LICENSE-AGPLv3.txt).
