@@ -2,7 +2,8 @@
     column drops Meetings and Activity — the meetings module is installed but
     carries no content on a contracts-only platform, and the activity feed is
     driven by participatory resources that do not exist here. Contracts already
-    render in the first column through the :menu registry; Open Data stays. %>
+    render in the first column through the :menu registry; Open Data stays, followed by the accessibility statement
+    once published. %>
 <div data-controller="accordion" data-multiselectable="true" class="contents">
   <nav class="footer__nav" role="navigation" aria-label="<%= t("layouts.decidim.footer.decidim_title") %>">
     <button type="button" id="panel-footer-menu-trigger" data-controls="panel-footer-menu" data-open-lg="true">
@@ -44,6 +45,12 @@
     <div id="panel-resources" aria-hidden="true">
       <ul>
         <li><%= link_to t("layouts.decidim.footer.open_data"), decidim.open_data_path %></li>
+        <%# Accessibility statement (civora-org/civora-platform#133): a static
+            page created by `civora:accessibility_statement:publish`; the link
+            shows only once that page exists, so it never points at a 404. %>
+        <% if Decidim::StaticPage.accessible_for(current_organization, current_user).exists?(slug: AccessibilityStatement::SLUG) %>
+          <li><%= link_to t("civora.footer.accessibility"), decidim.page_path(AccessibilityStatement::SLUG) %></li>
+        <% end %>
       </ul>
     </div>
   </nav>
