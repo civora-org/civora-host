@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # This migration comes from decidim_proposals (originally 20171220084719)
+# This file has been modified by `decidim upgrade:migrations` task on 2026-10-12 20:00:32 UTC
 class AddPublishedAtToProposals < ActiveRecord::Migration[5.1]
   def up
-    add_column :decidim_proposals_proposals, :published_at, :datetime
-    add_index :decidim_proposals_proposals, :published_at
+    add_column :decidim_proposals_proposals, :published_at, :datetime, index: true
     # rubocop:disable Rails/SkipsModelValidations
     Decidim::Proposals::Proposal.unscoped.update_all("published_at = updated_at")
     # rubocop:enable Rails/SkipsModelValidations

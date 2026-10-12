@@ -55,3 +55,7 @@
 
 # Ignore Tailwind configuration
 tailwind.config.js
+
+# data_migrate dumps the data version here on every data:migrate; it is
+# environment state, not source (Decidim 0.32 ships data migrations).
+/db/data_schema.rb
