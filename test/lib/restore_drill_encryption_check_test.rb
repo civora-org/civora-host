@@ -94,12 +94,11 @@ class RestoreDrillEncryptionCheckTest < ActiveSupport::TestCase
                                                 metadata: { "document_number" => "12345678X" })
   end
 
-  # Swap Decidim's memoized cryptor for one keyed from a random secret.
+  # Swap Decidim's memoized cryptor for one keyed from a random secret_key_base.
   def with_wrong_key
     original = Decidim::AttributeEncryptor.instance_variable_get(:@cryptor)
-    key = ActiveSupport::KeyGenerator.new("attribute", hash_digest_class: OpenSSL::Digest::SHA1)
-                                     .generate_key(SecureRandom.hex(64), ActiveSupport::MessageEncryptor.key_len)
-    Decidim::AttributeEncryptor.instance_variable_set(:@cryptor, ActiveSupport::MessageEncryptor.new(key))
+    # 0.32's cryptor is an AttributeEncryptor (it falls back to SHA1 on its own); keyed from another secret it cannot decrypt.
+    Decidim::AttributeEncryptor.instance_variable_set(:@cryptor, Decidim::AttributeEncryptor.new(secret: "attribute", secret_key_base: SecureRandom.hex(64)))
     yield
   ensure
     Decidim::AttributeEncryptor.instance_variable_set(:@cryptor, original)
