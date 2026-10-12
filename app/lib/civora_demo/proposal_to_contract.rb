@@ -65,6 +65,7 @@ module CivoraDemo
         result = ensure_result!(space, proposal, project)
         contract = ensure_contract!(editor)
         ensure_contract_links!(contract, result, project)
+        ensure_landing_blocks!(space)
         Result.new(organization: @organization, space: space, proposal: proposal, project: project,
                    result: result, contract: contract, created: @created)
       end
@@ -134,6 +135,31 @@ module CivoraDemo
                                     "cez rozpočtový projekt a výsledok realizácie až po zmluvu, ktorou bol projekt dodaný.</p>"),
                    start_date: Date.new(2026, 1, 15), end_date: Date.new(2026, 12, 31)
                  ))
+    end
+
+    # Landing page of the process: without content blocks Decidim renders only
+    # the title and the component menu, and a visitor has to dig through the
+    # navigation. These blocks put the description, dates, statistics and the
+    # highlighted proposal and result on the page itself. Existing blocks are
+    # left alone (an admin may have reordered or unpublished them).
+    LANDING_BLOCKS = %w(hero main_data extra_data stats highlighted_proposals highlighted_results metadata).freeze
+
+    def ensure_landing_blocks!(space)
+      scope = Decidim::ContentBlock.where(organization: organization, scope_name: "participatory_process_homepage",
+                                          scoped_resource_id: space.id)
+      LANDING_BLOCKS.each_with_index do |name, index|
+        next if scope.exists?(manifest_name: name)
+
+        created! scope.create!(manifest_name: name, weight: index + 1, published_at: Time.current,
+                               settings: landing_settings(space, name))
+      end
+    end
+
+    def landing_settings(space, name)
+      manifest = { "highlighted_proposals" => "proposals", "highlighted_results" => "accountability" }[name]
+      return {} unless manifest
+
+      { "order" => "recent", "component_id" => space.components.find_by(manifest_name: manifest)&.id }
     end
 
     def ensure_step!(space)

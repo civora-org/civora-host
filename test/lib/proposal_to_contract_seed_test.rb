@@ -22,6 +22,22 @@ class ProposalToContractSeedTest < ActiveSupport::TestCase
     @organization = FactoryBot.create(:organization, available_locales: %w(sk en), default_locale: "sk")
   end
 
+  test "gives the process a landing page with its content on it" do
+    outcome = CivoraDemo::ProposalToContract.call(@organization)
+    blocks = Decidim::ContentBlock.where(organization: @organization, scope_name: "participatory_process_homepage",
+                                         scoped_resource_id: outcome.space.id).order(:weight)
+
+    assert_equal CivoraDemo::ProposalToContract::LANDING_BLOCKS, blocks.pluck(:manifest_name)
+    assert(blocks.all?(&:published?))
+    proposals = outcome.space.components.find_by(manifest_name: "proposals")
+    assert_equal proposals.id.to_s, blocks.find_by(manifest_name: "highlighted_proposals").settings.component_id.to_s
+
+    blocks.find_by(manifest_name: "stats").update!(weight: 99, published_at: nil)
+    CivoraDemo::ProposalToContract.call(@organization)
+    assert_equal CivoraDemo::ProposalToContract::LANDING_BLOCKS.size, blocks.count
+    assert_nil blocks.find_by(manifest_name: "stats").published_at
+  end
+
   test "builds the whole story in one published participatory process" do
     outcome = CivoraDemo::ProposalToContract.call(@organization)
 
