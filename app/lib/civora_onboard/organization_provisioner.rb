@@ -18,7 +18,7 @@ module CivoraOnboard
     Result = Struct.new(:organization, :created, :changes, :admin_status, keyword_init: true)
 
     def self.call(config, admin_password: nil, dry_run: false)
-      new(config, admin_password: admin_password, dry_run: dry_run).call
+      new(config, admin_password:, dry_run:).call
     end
 
     def initialize(config, admin_password:, dry_run:)
@@ -34,7 +34,7 @@ module CivoraOnboard
       created = organization.nil?
       organization = create_organization! if created
       changes = converge(organization)
-      Result.new(organization: organization, created: created, changes: changes,
+      Result.new(organization:, created:, changes:,
                  admin_status: ensure_admin(organization))
     end
 
@@ -42,7 +42,7 @@ module CivoraOnboard
 
     def dry_result(organization)
       changes = organization ? pending_changes(organization).keys : []
-      Result.new(organization: organization, created: false, changes: changes,
+      Result.new(organization:, created: false, changes:,
                  admin_status: organization ? admin_state(organization) : :would_invite)
     end
 
@@ -64,7 +64,7 @@ module CivoraOnboard
       created = nil
       host = @config.host # command callbacks run with the listener as self
       Decidim::System::CreateOrganization.call(form) do
-        on(:ok) { created = Decidim::Organization.find_by!(host: host) }
+        on(:ok) { created = Decidim::Organization.find_by!(host:) }
         on(:invalid) { raise "Decidim refused the organization: #{form.errors.full_messages.to_sentence}" }
         on(:invalid_invitation) { raise "Decidim could not invite the first admin (check admin_email)" }
       end
@@ -101,7 +101,7 @@ module CivoraOnboard
     end
 
     def admin_scope(organization)
-      Decidim::User.where(organization: organization)
+      Decidim::User.where(organization:)
     end
 
     def admin_state(organization)

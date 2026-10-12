@@ -24,7 +24,7 @@ class ParticipationLinkResolverTest < ActiveSupport::TestCase
     info = Decidim::ContractsSk.resolve_link_target(link!(@contract, @result))
 
     assert_equal translated(@result.title), info[:label]
-    assert_equal "/processes/#{@tenant[:space].slug}/f/#{@result.component.id}/results/#{@result.id}", info[:url]
+    assert_equal "/#{I18n.locale}/processes/#{@tenant[:space].slug}/f/#{@result.component.id}/results/#{@result.id}", info[:url]
   end
 
   test "resolves a budgets project to a path nested under its budget" do
@@ -32,7 +32,7 @@ class ParticipationLinkResolverTest < ActiveSupport::TestCase
     info = Decidim::ContractsSk.resolve_link_target(link!(@contract, project))
 
     assert_equal translated(project.title), info[:label]
-    assert_equal "/processes/#{@tenant[:space].slug}/f/#{project.component.id}/budgets/#{project.budget.id}/projects/#{project.id}", info[:url]
+    assert_equal "/#{I18n.locale}/processes/#{@tenant[:space].slug}/f/#{project.component.id}/budgets/#{project.budget.id}/projects/#{project.id}", info[:url]
   end
 
   test "a result of another organization never resolves" do
@@ -55,9 +55,9 @@ class ParticipationLinkResolverTest < ActiveSupport::TestCase
     @result.component.update!(published_at: Time.current)
     assert Decidim::ContractsSk.resolve_link_target(link.reload)
 
-    @tenant[:space].update!(private_space: true)
+    @tenant[:space].update!(access_mode: "restricted", has_members: true)
     assert_nil Decidim::ContractsSk.resolve_link_target(link.reload)
-    @tenant[:space].update!(private_space: false, published_at: nil)
+    @tenant[:space].update!(access_mode: "open", has_members: false, published_at: nil)
     assert_nil Decidim::ContractsSk.resolve_link_target(link.reload)
   end
 

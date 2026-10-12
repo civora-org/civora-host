@@ -27,17 +27,17 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
   test "an unenrolled admin is sent to enrol from every admin path" do
     sign_in_with_password(@admin)
 
-    ["/admin", "/contracts/admin", "/contracts/admin/contracts"].each do |path|
+    ["/sk/admin", "/sk/contracts/admin", "/sk/contracts/admin/contracts"].each do |path|
       get path
 
-      assert_redirected_to "/two_factor/enrolment", path
+      assert_redirected_path "/two_factor/enrolment", path
     end
   end
 
   test "password sign-in of an unenrolled admin lands on enrolment" do
     sign_in_with_password(@admin)
 
-    assert_redirected_to "/two_factor/enrolment"
+    assert_redirected_path "/two_factor/enrolment"
   end
 
   test "the enrolment page shows a QR code, the key and a code field, and stores nothing readable" do
@@ -70,9 +70,9 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_not TwoFactor::Credential.find_by!(decidim_user_id: @admin.id).confirmed?
-    get "/admin"
+    get "/sk/admin"
 
-    assert_redirected_to "/two_factor/enrolment"
+    assert_redirected_path "/two_factor/enrolment"
   end
 
   test "a correct code enrols, shows ten recovery codes once, and opens the admin" do
@@ -86,7 +86,7 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     assert_predicate credential.reload, :confirmed?
     assert_equal ["enrolled"], TwoFactor::Event.where(decidim_user_id: @admin.id).pluck(:kind)
 
-    get "/admin"
+    get "/sk/admin"
 
     assert_response :ok
   end
@@ -97,10 +97,10 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     sign_in_with_password(@admin)
     get "/two_factor/enrolment"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
     post "/two_factor/enrolment", params: { two_factor: { code: "123456" } }
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
     assert_equal old_secret, credential.reload.otp_secret
   end
 
@@ -110,21 +110,21 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     credential = enrol!(@admin)
     sign_in_with_password(@admin)
 
-    assert_redirected_to "/two_factor/challenge"
-    get "/admin"
+    assert_redirected_path "/two_factor/challenge"
+    get "/sk/admin"
 
-    assert_redirected_to "/two_factor/challenge"
-    get "/contracts/admin"
+    assert_redirected_path "/two_factor/challenge"
+    get "/sk/contracts/admin"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
 
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
 
     assert_response :redirect
-    get "/admin"
+    get "/sk/admin"
 
     assert_response :ok
-    get "/contracts/admin"
+    get "/sk/contracts/admin"
 
     assert_response :ok
   end
@@ -132,10 +132,10 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
   test "the challenge sends the user back to where they were going" do
     credential = enrol!(@admin)
     sign_in_with_password(@admin)
-    get "/contracts/admin/contracts"
+    get "/sk/contracts/admin/contracts"
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
 
-    assert_redirected_to "/contracts/admin/contracts"
+    assert_redirected_to "/sk/contracts/admin/contracts"
   end
 
   test "a wrong code is rejected with a generic message and does not open the admin" do
@@ -144,9 +144,9 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     post "/two_factor/challenge", params: { two_factor: { code: "000000" } }
 
     assert_response :unprocessable_entity
-    get "/admin"
+    get "/sk/admin"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
   end
 
   test "a used code cannot be replayed in a new sign-in" do
@@ -154,7 +154,7 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     code = current_code(credential)
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: } }
-    delete "/users/sign_out"
+    delete "/sk/users/sign_out"
 
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: } }
@@ -166,25 +166,25 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     credential = enrol!(@admin)
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
-    delete "/users/sign_out"
+    delete "/sk/users/sign_out"
     sign_in_with_password(@admin)
-    get "/admin"
+    get "/sk/admin"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
   end
 
   test "any new authentication event in a live session clears the verified flag" do
     credential = enrol!(@admin)
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
-    get "/admin"
+    get "/sk/admin"
 
     assert_response :ok
 
     login_as(@admin, scope: :user) # a second Warden set_user, e.g. a remember-me or omniauth sign-in
-    get "/admin"
+    get "/sk/admin"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
   end
 
   test "five wrong codes lock the challenge with 429, even for the right code" do
@@ -207,11 +207,11 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_includes flash[:notice], "9"
     assert_includes TwoFactor::Event.where(decidim_user_id: @admin.id).pluck(:kind), "recovery_used"
-    get "/admin"
+    get "/sk/admin"
 
     assert_response :ok
 
-    delete "/users/sign_out"
+    delete "/sk/users/sign_out"
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: } }
 
@@ -224,7 +224,7 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     sign_in_with_password(@admin)
     post "/two_factor/recovery_codes"
 
-    assert_redirected_to "/two_factor/challenge"
+    assert_redirected_path "/two_factor/challenge"
 
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
     get "/two_factor/recovery_codes"
@@ -246,11 +246,11 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     assert_not_equal "/two_factor/challenge", URI(response.location).path
     get "/two_factor/enrolment"
 
-    assert_redirected_to "/"
-    get "/"
+    assert_redirected_path "/sk"
+    get "/sk/"
 
     assert_response :ok
-    get "/contracts"
+    get "/sk/contracts"
 
     assert_response :ok
   end
@@ -258,7 +258,7 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
   test "the public catalogue never asks an unverified admin for a code" do
     enrol!(@admin)
     sign_in_with_password(@admin)
-    get "/contracts"
+    get "/sk/contracts"
 
     assert_response :ok
   end
@@ -271,9 +271,9 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     Decidim::ContractsSk.stub(:role_resolver, -> { resolver }) do
       assert TwoFactor::Policy.required?(holder)
       assert_not TwoFactor::Policy.required?(create_participant(@organization))
-      get "/contracts/admin"
+      get "/sk/contracts/admin"
 
-      assert_redirected_to "/two_factor/enrolment"
+      assert_redirected_path "/two_factor/enrolment"
     end
   end
 
@@ -329,7 +329,7 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     TwoFactor::RecoveryCode.generate_for!(credential)
     sign_in_with_password(@admin)
     post "/two_factor/challenge", params: { two_factor: { code: current_code(credential) } }
-    get "/admin"
+    get "/sk/admin"
 
     assert_response :ok
 
@@ -342,12 +342,12 @@ class TwoFactorFlowTest < ActionDispatch::IntegrationTest
     assert_equal "operator", event.actor
     assert_includes event.reason, "ticket 12"
 
-    get "/admin"
+    get "/sk/admin"
 
-    assert_redirected_to "/users/sign_in"
+    assert_redirected_path %r{\A/(sk|en)/users/sign_in\z}
     sign_in_with_password(@admin)
 
-    assert_redirected_to "/two_factor/enrolment"
+    assert_redirected_path "/two_factor/enrolment"
   end
 
   test "operator reset needs a reason and an enrolled user" do

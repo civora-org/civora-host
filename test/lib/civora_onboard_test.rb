@@ -143,7 +143,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
   end
 
   def sync_pass(success, output = "", since: nil)
-    CivoraOnboard::SyncResume::Pass.new(since: since, success: success, output: output)
+    CivoraOnboard::SyncResume::Pass.new(since:, success:, output:)
   end
 
   test "resume_since parses and unescapes the since of the stop message" do
@@ -166,7 +166,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
       outputs.shift
     end
 
-    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner: runner,
+    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner:,
                                             sleeper: ->(s) { sleeps << s }, log: ->(_) {}).call
 
     assert outcome.complete?
@@ -178,7 +178,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
   test "stops without retrying on a non-rate-limit failure" do
     runner = ->(_org, _since) { sync_pass(false, "No import actor for organization #1") }
     sleeps = []
-    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner: runner,
+    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner:,
                                             sleeper: ->(s) { sleeps << s }, log: ->(_) {}).call
     assert_equal :failed, outcome.status
     assert_equal 1, outcome.passes
@@ -187,7 +187,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
 
   test "gives up when the same since keeps failing (no progress)" do
     runner = ->(_org, _since) { sync_pass(false, stop_output("2026-01-01T00%3A00%3A00Z")) }
-    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner: runner,
+    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner:,
                                             sleeper: ->(_) {}, max_stalls: 3, log: ->(_) {}).call
     assert_equal :stalled, outcome.status
     assert_equal 3, outcome.passes
@@ -199,7 +199,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
       n += 1
       sync_pass(false, stop_output(format("2026-01-%02dT00%%3A00%%3A00Z", n + 1)))
     end
-    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner: runner,
+    outcome = CivoraOnboard::SyncResume.new(organization_id: 1, since: "2026-01-01T00:00:00Z", runner:,
                                             sleeper: ->(_) {}, max_passes: 4, log: ->(_) {}).call
     assert_equal :max_passes, outcome.status
     assert_equal 4, outcome.passes
@@ -208,7 +208,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
   test "rejects an invalid since before running anything" do
     runner = ->(*) { flunk "must not run" }
     assert_raises(ArgumentError) do
-      CivoraOnboard::SyncResume.new(organization_id: 1, since: "yesterday", runner: runner, log: ->(_) {}).call
+      CivoraOnboard::SyncResume.new(organization_id: 1, since: "yesterday", runner:, log: ->(_) {}).call
     end
   end
 

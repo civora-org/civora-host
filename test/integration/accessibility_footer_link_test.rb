@@ -18,19 +18,19 @@ class AccessibilityFooterLinkTest < ActionDispatch::IntegrationTest
   teardown { unstub_webpack_manifest }
 
   test "no footer link before the page exists" do
-    get "/"
+    get "/sk/"
 
     assert_response :ok
-    assert_select "footer a[href^=?]", "/pages/accessibility", count: 0
+    assert_select "footer a[href$=?]", "/pages/accessibility", count: 0
   end
 
   test "the footer links to the published statement, which renders for visitors" do
     AccessibilityStatement.call(@organization, contact_email: "access@example.org")
 
-    get "/"
-    assert_select "#panel-resources a[href^=?]", "/pages/accessibility", text: "Vyhlásenie o prístupnosti"
+    get "/sk/"
+    assert_select "#panel-resources a[href$=?]", "/pages/accessibility", text: "Vyhlásenie o prístupnosti"
 
-    get "/pages/accessibility"
+    get "/sk/pages/accessibility"
     assert_response :ok
     assert_select "h2", text: "Stav súladu"
     assert_select "a[href=?]", "mailto:access@example.org"
@@ -39,10 +39,9 @@ class AccessibilityFooterLinkTest < ActionDispatch::IntegrationTest
   test "the link follows the visitor's locale" do
     AccessibilityStatement.call(@organization)
 
-    post "/locale", params: { locale: "en" }
-    get "/"
+    get "/en/"
 
-    assert_select "#panel-resources a[href^=?]", "/pages/accessibility", text: "Accessibility statement"
+    assert_select "#panel-resources a[href$=?]", "/pages/accessibility", text: "Accessibility statement"
   end
 
   private

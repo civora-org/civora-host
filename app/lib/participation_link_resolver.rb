@@ -38,7 +38,7 @@ module ParticipationLinkResolver
     label = Translator.new.translated_attribute(target.title, organization).to_s.strip
     return nil if label.empty?
 
-    { label: label, url: path_for(target) }
+    { label:, url: path_for(target) }
   end
 
   def same_organization?(target, organization)

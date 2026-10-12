@@ -12,25 +12,25 @@ require "decidim/budgets/test/factories"
 module ParticipationLinkHelpers
   def build_tenant
     organization = FactoryBot.create(:organization)
-    space = FactoryBot.create(:participatory_process, organization: organization)
-    author = FactoryBot.create(:user, :confirmed, organization: organization)
-    { organization: organization, space: space, author: author }
+    space = FactoryBot.create(:participatory_process, organization:)
+    author = FactoryBot.create(:user, :confirmed, organization:)
+    { organization:, space:, author: }
   end
 
   def create_result(tenant, **attrs)
     component = FactoryBot.create(:accountability_component, participatory_space: tenant[:space])
-    FactoryBot.create(:result, component: component, **attrs)
+    FactoryBot.create(:result, component:, **attrs)
   end
 
   def create_project(tenant)
     component = FactoryBot.create(:budgets_component, participatory_space: tenant[:space])
-    FactoryBot.create(:project, budget: FactoryBot.create(:budget, component: component))
+    FactoryBot.create(:project, budget: FactoryBot.create(:budget, component:))
   end
 
   def create_contract(tenant, state: "published", **attrs)
     @contract_serial = (@contract_serial || 0) + 1
     Decidim::ContractsSk::Contract.create!(
-      { organization: tenant[:organization], author: tenant[:author], state: state,
+      { organization: tenant[:organization], author: tenant[:author], state:,
         title: "Detske ihrisko #{@contract_serial}", reference: "TST-#{@contract_serial}-#{SecureRandom.hex(3)}",
         published_at: (state == "published" ? Time.current : nil) }.merge(attrs)
     )

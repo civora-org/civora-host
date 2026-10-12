@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "minitest/mock"
 
 # Failure-path semantics of the deep health check helpers (app/lib/health_checks.rb):
 # any error must collapse to `false` so the endpoint can report 503 instead of 500.

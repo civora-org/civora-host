@@ -11,7 +11,7 @@ class RelatedContractsViewsTest < ActionDispatch::IntegrationTest
   include ParticipationLinkHelpers
 
   OVERRIDES = {
-    "decidim-accountability" => "app/views/decidim/accountability/results/_project.html.erb",
+    "decidim-accountability" => "app/views/decidim/accountability/results/_result.html.erb",
     "decidim-budgets" => "app/views/decidim/budgets/projects/show.html.erb"
   }.freeze
 
@@ -34,7 +34,7 @@ class RelatedContractsViewsTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_select "section.cs-related" do
-      assert_select "a.cs-related__title[href=?]", "/contracts/#{contract.id}", text: "Detske ihrisko - dodavka"
+      assert_select "a.cs-related__title[href$=?]", "/contracts/#{contract.id}", text: "Detske ihrisko - dodavka"
     end
   end
 
@@ -45,7 +45,7 @@ class RelatedContractsViewsTest < ActionDispatch::IntegrationTest
     get project_path(@project)
 
     assert_response :ok
-    assert_select "section.cs-related a.cs-related__title[href=?]", "/contracts/#{contract.id}", text: "Zostava preliezok"
+    assert_select "section.cs-related a.cs-related__title[href$=?]", "/contracts/#{contract.id}", text: "Zostava preliezok"
   end
 
   test "result page renders nothing without a link" do
@@ -65,7 +65,7 @@ class RelatedContractsViewsTest < ActionDispatch::IntegrationTest
 
   test "non-published contracts are not shown" do
     %w(draft in_review archived).each do |state|
-      link!(create_contract(@tenant, state: state), @result)
+      link!(create_contract(@tenant, state:), @result)
     end
 
     get result_path(@result)

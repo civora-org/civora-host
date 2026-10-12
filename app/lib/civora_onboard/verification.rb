@@ -51,12 +51,12 @@ module CivoraOnboard
 
     def locale_check
       ok = organization.default_locale == "sk" && organization.time_zone == "Bratislava"
-      Check.new(label: "Slovak defaults", ok: ok,
+      Check.new(label: "Slovak defaults", ok:,
                 detail: "default_locale=#{organization.default_locale} time_zone=#{organization.time_zone} available=#{organization.available_locales.join(",")}")
     end
 
     def admin_check
-      admins = Decidim::User.where(organization: organization, admin: true)
+      admins = Decidim::User.where(organization:, admin: true)
       ready = admins.where.not(admin_terms_accepted_at: nil).where.not(encrypted_password: [nil, ""]).count
       Check.new(label: "An admin can sign in", ok: ready.positive?,
                 detail: "#{admins.count} admin(s), #{ready} with password and accepted admin terms")
@@ -66,13 +66,13 @@ module CivoraOnboard
     def scope_check
       return unless ico
 
-      matched = Decidim::ContractsSk::CrzImport::Prune.call(organization: organization, ico: ico, confirm: false).matched
+      matched = Decidim::ContractsSk::CrzImport::Prune.call(organization:, ico:, confirm: false).matched
       Check.new(label: "Only this city's contracts are mirrored", ok: matched.zero?,
                 detail: "#{matched} out-of-scope CRZ mirror(s) (prune_out_of_scope dry run)")
     end
 
     def catalogue_check
-      scope = Decidim::ContractsSk::Contract.where(organization: organization)
+      scope = Decidim::ContractsSk::Contract.where(organization:)
       Check.new(label: "Catalogue", ok: true, detail: "#{scope.count} contract(s), #{scope.published.count} published")
     rescue ActiveRecord::StatementInvalid, NameError
       Check.new(label: "Catalogue", ok: false, detail: "could not count contracts")

@@ -12,6 +12,10 @@ require "decidim/participatory_processes/test/factories"
 # by an idempotent rake task (docs/ops/participation-navigation.md).
 class ParticipationNavigationTest < ActionDispatch::IntegrationTest
   PROCESSES_HREF = "/processes"
+  # The bar's own links. Decidim 0.32 also lists the processes in the "Menu"
+  # dropdown inside the same <nav> (#dropdown-menu-main-desktop), always, so
+  # the selector must stop at the wrapper's direct children.
+  HEADER_LINKS = "nav.main-bar__links-desktop > div > div"
 
   setup do
     @organization = FactoryBot.create(:organization, available_locales: %w(sk en), default_locale: "sk")
@@ -26,51 +30,51 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
   teardown { unstub_webpack_manifest }
 
   test "contracts-only town keeps the header and hero as they were" do
-    get "/"
+    get "/sk/"
 
     assert_response :ok
-    assert_select "nav.main-bar__links-desktop a[href=?]", PROCESSES_HREF, count: 0
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, count: 0
     assert_select "#hero-cta[href=?]", "/contracts"
     assert_select "#hero-cta-processes", count: 0
   end
 
   test "unpublished and private processes do not count" do
     FactoryBot.create(:participatory_process, :unpublished, organization: @organization)
-    FactoryBot.create(:participatory_process, :published, :private, organization: @organization)
+    FactoryBot.create(:participatory_process, :published, :restricted, organization: @organization)
 
-    get "/"
+    get "/sk/"
 
-    assert_select "nav.main-bar__links-desktop a[href=?]", PROCESSES_HREF, count: 0
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, count: 0
     assert_select "#hero-cta-processes", count: 0
   end
 
   test "another organization's published process does not count" do
     FactoryBot.create(:participatory_process, :published)
 
-    get "/"
+    get "/sk/"
 
-    assert_select "nav.main-bar__links-desktop a[href=?]", PROCESSES_HREF, count: 0
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, count: 0
   end
 
   test "a published process adds the header link and the second hero CTA" do
     FactoryBot.create(:participatory_process, :published, organization: @organization)
 
-    get "/"
+    get "/sk/"
 
-    assert_select "nav.main-bar__links-desktop a[href=?]", PROCESSES_HREF, text: "Participácia"
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, text: "Participácia"
     assert_select "#hero-cta[href=?]", "/contracts", text: /Prezrieť zmluvy/
     assert_select "#hero-cta[title=?]", "Prezrieť verejné zmluvy"
-    assert_select "#hero-cta-processes[href=?]", PROCESSES_HREF, text: /Participácia/
+    assert_select "#hero-cta-processes[href$=?]", PROCESSES_HREF, text: /Participácia/
 
-    get "/?locale=en"
-    assert_select "nav.main-bar__links-desktop a[href=?]", PROCESSES_HREF, text: "Participation"
+    get "/en/"
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, text: "Participation"
     assert_select "#hero-cta[title=?]", "Browse public contracts"
   end
 
   test "the link leads to a page that renders" do
     FactoryBot.create(:participatory_process, :published, organization: @organization)
 
-    get PROCESSES_HREF
+    get "/sk#{PROCESSES_HREF}"
 
     assert_response :ok
   end
@@ -90,6 +94,7 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
     task = Rake::Task["civora:home:participation"]
     blocks = -> { Decidim::ContentBlock.where(organization: @organization, scope_name: "homepage", manifest_name: "highlighted_processes") }
 
+    task.reenable # another test may have invoked it already (random order)
     out, = capture_io { task.invoke(@organization.id.to_s) }
     assert_match(/created/, out)
     assert_equal 1, blocks.call.count
@@ -126,7 +131,7 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
     process = FactoryBot.create(:participatory_process, :published, :promoted, organization: @organization,
                                                                                start_date: 1.week.ago, end_date: 1.month.from_now)
 
-    get "/"
+    get "/sk/"
 
     assert_response :ok
     assert_select "#highlighted-processes"
