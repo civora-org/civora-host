@@ -88,6 +88,7 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
   test "the rake task adds the highlighted-processes block below the hero, once" do
     Rails.application.load_tasks unless Rake::Task.task_defined?("civora:home:participation")
     task = Rake::Task["civora:home:participation"]
+    task.reenable # rake runs a task once per process; another test may have invoked it already
     blocks = -> { Decidim::ContentBlock.where(organization: @organization, scope_name: "homepage", manifest_name: "highlighted_processes") }
 
     out, = capture_io { task.invoke(@organization.id.to_s) }
