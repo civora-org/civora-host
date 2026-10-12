@@ -20,5 +20,5 @@ Without an id the first organization is used. The task creates the highlighted-p
 ## Notes
 
 - Header: `app/views/layouts/decidim/header/_main_links_desktop.html.erb` (override of the core partial, see the comment in the file). The check is `ParticipationNavigation.processes?` (`app/lib/participation_navigation.rb`), memoized per request.
-- Hero: `app/cells/decidim/content_blocks/hero/cta_button.erb` overrides the core cell template (0.31.7) with the original button kept verbatim plus the second one; layout in `app/packs/stylesheets/decidim/decidim_application.scss` (`.hero__cta`). On a Decidim bump compare both overrides with the gem.
+- Hero: `app/cells/decidim/content_blocks/hero/cta_button.erb` overrides the core cell template (0.32.1) with the original button kept verbatim plus the second one; layout in `app/packs/stylesheets/decidim/decidim_application.scss` (`.hero__cta`). On a Decidim bump compare both overrides with the gem.
 - The tooltip "Podieľajte sa na procesoch platformy" on the contracts button was core's `decidim.pages.home.hero.participate_title`; the host locale files now say "Prezrieť verejné zmluvy". (The hero button target itself is `cta_button_path_*` in `db/seeds.rb`, already `/contracts`.)

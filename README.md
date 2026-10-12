@@ -1,6 +1,6 @@
 # Civora host app
 
-The Civora host application. It is a [Decidim](https://decidim.org) 0.31.7 install that mounts the [`decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk) engine at `/contracts`. The engine provides the Slovak public contracts workflow and catalogue. This repository adds the deployment, the Slovak-first shell and the operations tooling around it.
+The Civora host application. It is a [Decidim](https://decidim.org) 0.32.1 install that mounts the [`decidim-contracts_sk`](https://github.com/civora-org/decidim-contracts_sk) engine at `/contracts` (inside Decidim's locale scope, so the pages live at `/sk/contracts`; the old `/contracts` paths redirect permanently). The engine provides the Slovak public contracts workflow and catalogue. This repository adds the deployment, the Slovak-first shell and the operations tooling around it.
 
 Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.com/civora-org/civora-platform), not in this repository.
 
@@ -14,9 +14,10 @@ Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.c
 
 | Component | Version |
 |---|---|
-| Decidim | 0.31.7 (the engine also supports 0.32; this host is not on 0.32 yet) |
+| Decidim | 0.32.1 (Rails 8.1) |
 | `decidim-contracts_sk` | v1.8.0 (pinned in the `Gemfile`) |
-| Ruby | 3.3.4 (`.ruby-version`) |
+| Ruby | 3.4.7 (`.ruby-version`) |
+| libvips | system library for image processing (replaces ImageMagick in Decidim 0.32); `libvips42t64` in the image |
 | Node.js | 22.14.0 (`.node-version`, for Shakapacker) |
 | PostgreSQL | 17 (Compose and CI) |
 | Redis | 7 (Compose; required by the production Action Cable config) |
@@ -36,7 +37,7 @@ Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.c
 
 | Service | Image | Purpose |
 |---|---|---|
-| `app` | built from `Dockerfile` (`ruby:3.3.4-slim`, non-root user) | Rails and Decidim on port 3000. The entrypoint runs `db:prepare` and `db:seed` before starting the Rails server |
+| `app` | built from `Dockerfile` (`ruby:3.4.7-slim`, non-root user) | Rails and Decidim on port 3000. The entrypoint runs `db:prepare` and `db:seed` before starting the Rails server |
 | `scheduler` | same image | Nightly CRZ sync loop (03:30 Europe/Bratislava). Runs `scripts/crz_sync_scheduler.sh` |
 | `db` | `postgres:17` | Production database |
 | `redis` | `redis:7-alpine` | Action Cable |
@@ -206,11 +207,11 @@ The engine provides markup only. The Civora look and content live in this reposi
 | Footer: Resources holds Open Data only | `app/views/layouts/decidim/footer/_main_links.html.erb` |
 | Slovak locale fix and footer copy | `config/locales/sk.yml` |
 | Homepage hero, en and sk, idempotent | `db/seeds.rb` |
-| Participation links: resolver and two view overrides | `app/lib/participation_link_resolver.rb`, `app/views/decidim/accountability/results/_project.html.erb`, `app/views/decidim/budgets/projects/show.html.erb` |
+| Participation links: resolver and two view overrides | `app/lib/participation_link_resolver.rb`, `app/views/decidim/accountability/results/_result.html.erb`, `app/views/decidim/budgets/projects/show.html.erb` |
 | Admin second factor | `app/lib/two_factor`, `app/controllers/two_factor`, `config/initializers/two_factor.rb` |
 | Engine configuration seams | `config/initializers/contracts_sk.rb` |
 
-The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.31.7 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views drift from the installed gems.
+The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.32.1 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views, or the header links partial, drift from the installed gems.
 
 Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
 

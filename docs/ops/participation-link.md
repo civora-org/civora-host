@@ -8,11 +8,11 @@ Contracts can be linked to Decidim **Accountability results** and **Budgets proj
 |---|---|
 | Whitelist and resolver wiring | `config/initializers/contracts_sk.rb` |
 | Organization-scoped resolver | `app/lib/participation_link_resolver.rb` |
-| Result page override | `app/views/decidim/accountability/results/_project.html.erb` |
+| Result page override | `app/views/decidim/accountability/results/_result.html.erb` |
 | Budgets project page override | `app/views/decidim/budgets/projects/show.html.erb` |
 | Tests | `test/lib/participation_link_resolver_test.rb`, `test/integration/related_contracts_views_test.rb` |
 
-`decidim-accountability` and `decidim-budgets` come with the `decidim` meta-gem (0.31.7); nothing was added to the Gemfile. The Accountability and Budgets **components** must still exist in a participatory process of the organization.
+`decidim-accountability` and `decidim-budgets` come with the `decidim` meta-gem (0.32.1); nothing was added to the Gemfile. The Accountability and Budgets **components** must still exist in a participatory process of the organization.
 
 ## Resolver rules
 

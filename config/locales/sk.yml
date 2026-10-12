@@ -1,4 +1,4 @@
-# Host overrides of decidim-core 0.31.7 Slovak strings.
+# Host overrides of decidim-core 0.32.1 Slovak strings.
 #
 # Core ships "Vitajte na%{organization} ..." (no space before the
 # interpolation), which renders "Vitajte naCivora" in the footer, the

@@ -64,7 +64,7 @@ This URL feeds metadata, canonical links and the footer organization link.
 
 ## Typography
 
-Typography intentionally stays on Decidim 0.31 defaults (Source Sans Pro with
+Typography intentionally stays on Decidim 0.32 defaults (Source Sans Pro with
 system sans fallbacks, per the host `tailwind.config.js`). Slovak diacritics
 (ľ š č ť ž ý á í é ú ä ô ň) are fully covered by the default stack. **No font
 files are shipped** with the host app — adding custom webfonts is out of scope.
@@ -72,13 +72,13 @@ files are shipped** with the host app — adding custom webfonts is out of scope
 ## Print behaviour
 
 `app/packs/stylesheets/decidim/decidim_application.scss` adds an
-application-level print layer (Decidim 0.31 core ships none): on print it hides
+application-level print layer (Decidim 0.32 core ships none): on print it hides
 the site header/footer region, cookie-consent banner and warning, offline
 banner and session-timeout modal, forces white background/black text, removes
 the responsive column insets, and applies pagination hygiene (cards, lists and
 table rows stay whole; headings stay with their content; long tables keep
 repeating header rows). Selectors are documented inline and were verified
-against the pinned decidim-core/admin 0.31.7 gems.
+against the pinned decidim-core/admin 0.32.1 gems.
 
 ## Stage-2 non-goals
 
