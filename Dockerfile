@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder: toolchain + gems + assets ----
-FROM ruby:3.3.4-slim AS builder
+FROM ruby:3.4.7-slim AS builder
 
 ENV LANG=C.UTF-8 \
     BUNDLE_PATH=vendor/bundle \
@@ -10,7 +10,7 @@ ENV LANG=C.UTF-8 \
     RAILS_ENV=production
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-      build-essential git libpq-dev libyaml-dev libicu-dev pkg-config \
+      build-essential git libpq-dev libyaml-dev libicu-dev pkg-config zlib1g-dev libvips42t64 \
     && rm -rf /var/lib/apt/lists/*
 
 # Node 22 toolchain for Shakapacker asset compilation (build stage only).
@@ -44,7 +44,7 @@ RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile \
     && rm -rf node_modules tmp/* log/*
 
 # ---- Runtime: slim, non-root, no build tools ----
-FROM ruby:3.3.4-slim AS runtime
+FROM ruby:3.4.7-slim AS runtime
 
 ENV LANG=C.UTF-8 \
     RAILS_ENV=production \
@@ -54,7 +54,7 @@ ENV LANG=C.UTF-8 \
     BUNDLE_DEPLOYMENT=1
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-      libpq5 libjemalloc2 tzdata libicu72 imagemagick libvips42 \
+      libpq5 libjemalloc2 tzdata libicu76 libvips42t64 \
     && rm -rf /var/lib/apt/lists/* \
     && gem install bundler -v 4.0.19 \
     && groupadd -r -g 1000 rails \

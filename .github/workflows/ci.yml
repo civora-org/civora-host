@@ -27,7 +27,7 @@ jobs:
           fi
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3.4'
+          ruby-version: '3.4.7'
           bundler-cache: true
       - name: RuboCop
         run: bundle exec rubocop
@@ -64,12 +64,13 @@ jobs:
           fi
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3.4'
+          ruby-version: '3.4.7'
           bundler-cache: true
-      # Decidim's full-page renders (the related-contracts view overrides)
-      # resolve image variants, which need ImageMagick on the runner.
-      - name: Install ImageMagick
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
+      # Decidim 0.32 processes images with libvips (ruby-vips); its full-page
+      # renders (the related-contracts view overrides) resolve image variants,
+      # which need the shared library on the runner.
+      - name: Install libvips
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libvips42t64
       - name: Prepare test database
         run: DISABLE_SPRING=1 bin/rails db:create db:schema:load
       - name: Run tests
@@ -91,7 +92,7 @@ jobs:
           fi
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3.4'
+          ruby-version: '3.4.7'
           bundler-cache: true
       - name: Brakeman (fail on new warnings)
         run: bundle exec brakeman --exit-on-warn -q
@@ -126,7 +127,7 @@ jobs:
           fi
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3.4'
+          ruby-version: '3.4.7'
           bundler-cache: true
       - name: Audit gems
         run: bundle exec bundler-audit check --update
