@@ -232,6 +232,7 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 | [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) | Accessibility statement and its publishing task |
 | [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) | Backup and restore procedures, deploy gate, scheduled operation |
 | [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) | Log of executed restore drills |
+| [`docs/ops/decidim-032-secrets-runbook.md`](docs/ops/decidim-032-secrets-runbook.md) | Decidim 0.32 secret-key and encryption upgrade: backups first, upgrade sequence, rollback, restore drill (not yet run) |
 | [`docs/ops/log-policy.md`](docs/ops/log-policy.md) | Where logs live, rotation, levels, privacy rules |
 | [`docs/ops/observability.md`](docs/ops/observability.md) | Error tracking, metrics, alerting, backup dead-man switch |
 | [`docs/ops/incident-response.md`](docs/ops/incident-response.md) | Roles, severity, response targets, breach notification (sk templates) |
