@@ -24,7 +24,7 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 
 | Secret | Used by | Lives in | Notes |
 |---|---|---|---|
-| `SECRET_KEY_BASE` | Rails session/cookie signing | `.env` (dev & prod) | rotate → invalidates sessions **and every enrolled admin second factor**: run `two_factor:reset_all` right after ([two-factor.md](two-factor.md)) |
+| `SECRET_KEY_BASE` | Rails session/cookie signing | `.env` (dev & prod) | rotate → invalidates sessions **and every enrolled admin second factor**: run `two_factor:reset_all` right after ([two-factor.md](two-factor.md)). **Not in `backups/`:** keep a copy in the password manager; the restore drill needs it ([restore-runbook.md](restore-runbook.md)) |
 | `POSTGRES_PASSWORD` | Postgres auth (compose + `database.yml`) | `.env` | dev compose overlay uses trust auth instead |
 | `DATABASE_USERNAME` / `DATABASE_PASSWORD` | `config/database.yml` | `.env` (prod), unset locally | local dev uses peer auth |
 | `DATABASE_URL` | `config/database.yml` (production block) | unset | only if moving to a URL-style DB config |
@@ -37,6 +37,8 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 | OmniAuth / Maps / Etherpad / VAPID families | future `config/initializers/decidim.rb` | — | not in the surface yet; will arrive via `Decidim::Env` when the initializer lands |
 
 Secrets are never shared between environments (see [environments.md](environments.md)).
+
+**Decidim 0.32 upgrade:** `SECRET_KEY_BASE` must stay unchanged; the upgrade's encryption step (`decidim:upgrade:encryption`) re-encrypts only Decidim's own records. Back up the secret before the upgrade and never rotate it as a side effect. See [decidim-032-secrets-runbook.md](decidim-032-secrets-runbook.md).
 
 ## Handling rules
 
