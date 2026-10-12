@@ -1,11 +1,18 @@
-# Overlay for the restore drill (scripts/restore_drill.sh): throwaway secrets
-# and an ephemeral host port so the drill never touches the real stack.
+# Overlay for the restore drill (scripts/restore_drill.sh): throwaway DB
+# password, the BACKUP'S OWN SECRET_KEY_BASE (operator-supplied, civora-org/
+# civora-platform#196) and an ephemeral host port, so the drill never touches
+# the real stack.
 # Run only via: docker compose -p civora-restore-drill -f compose.yaml -f compose.drill.yml
 services:
   app:
     environment:
       DATABASE_PASSWORD: ${DRILL_PASSWORD:?drill-only overlay}
       SECRET_KEY_BASE: ${DRILL_KEYBASE:?drill-only overlay}
+    # The encryption check ships with the checkout, so the drill works even when
+    # the image tag predates it (read-only bind mounts, as for the scheduler).
+    volumes:
+      - ./app/lib/restore_drill:/app/app/lib/restore_drill:ro
+      - ./lib/tasks/restore_drill.rake:/app/lib/tasks/restore_drill.rake:ro
     ports: !override
       - "${PORT:-3100}:3000"
 

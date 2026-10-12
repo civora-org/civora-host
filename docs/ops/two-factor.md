@@ -64,6 +64,8 @@ docker compose exec db psql -U postgres -d decidim_app_production -c "select cre
 
 The seeds and the recovery-code digests are keyed to `SECRET_KEY_BASE`. After a rotation no enrolled user can pass the challenge (the server answers with an error). Run `bin/rails two_factor:reset_all REASON="secret_key_base rotated"` straight after the rotation; every admin then enrols again. Back up before rotating, like any key change.
 
+The same applies to a restore: a database restored under a different `SECRET_KEY_BASE` than the one that wrote it behaves like a rotation. `scripts/restore_drill.sh` therefore boots with the backup's own key and fails unless it can decrypt a TOTP seed ([restore-runbook.md](restore-runbook.md)).
+
 ### Pilot checklist addition
 
 Before a pilot stack is reachable from the internet: create the admins, then sign in as each one, enrol, and store the recovery codes in the municipality's password manager. `two_factor:status` must report `0 of N not enrolled`.
