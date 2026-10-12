@@ -38,6 +38,8 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 
 Secrets are never shared between environments (see [environments.md](environments.md)).
 
+**Decidim 0.32 upgrade:** `SECRET_KEY_BASE` must stay unchanged; the upgrade's encryption step (`decidim:upgrade:encryption`) re-encrypts only Decidim's own records. Back up the secret before the upgrade and never rotate it as a side effect. See [decidim-032-secrets-runbook.md](decidim-032-secrets-runbook.md).
+
 ## Handling rules
 
 - Do not paste secret values into logs, issue comments, docs, or chat. Docs and examples use placeholders only.
