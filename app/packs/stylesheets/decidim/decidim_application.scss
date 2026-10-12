@@ -10,14 +10,14 @@
 // =============================================================================
 // Print layer
 //
-// Decidim 0.31 core ships no print stylesheet (only qr.scss has @media print
+// Decidim 0.32 core ships no print stylesheet (only qr.scss has @media print
 // rules), so a printed public contract record currently carries the site
 // header, footer and cookie banners. This layer fixes that with plain CSS
 // only — no imports, no @apply, no !important — so the host pack build
 // cannot fail on it.
 //
 // Every selector below was verified against the pinned gems
-// (decidim-core-0.31.7 / decidim-admin-0.31.7):
+// (decidim-core-0.32.1 / decidim-admin-0.32.1):
 //   header[role="banner"]     layouts/decidim/_wrapper.html.erb:16 — the whole
 //                             site header region (main bar, menu bar, admin
 //                             links, impersonation/omnipresent banners)
@@ -41,10 +41,10 @@
 //                             layouts/decidim/admin/_admin_timeout_modal.html.erb:4
 //                             — the session-timeout modal shares one id
 //
-// Deliberately NOT targeted (verified absent in 0.31.7): .main-header,
+// Deliberately NOT targeted (verified absent in 0.32.1): .main-header,
 // #admin-timeout-modal, .layout-footer.
 //
-// Cards are flat in 0.31 (_cards.scss has no box-shadow); the box-shadow
+// Cards are flat in 0.32 (_cards.scss has no box-shadow); the box-shadow
 // reset on .card/.card__list is defensive for utility-shadowed content.
 // =============================================================================
 @media print {

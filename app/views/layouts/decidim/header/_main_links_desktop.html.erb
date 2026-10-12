@@ -1,71 +1,92 @@
-<%# Host override of decidim-core's header main links (0.31.7 hardcodes
-    Help / Meetings / Activity here — the :menu registry never reaches the
-    desktop header). Civora is a contracts platform: the unused Meetings and
-    Activity links are replaced with the contracts catalogue, which is the
-    product's public surface (the :menu registry item only reaches the footer
-    and the breadcrumb dropdown). A "Participation" link to the processes index
-    follows, shown only when the organization has processes a visitor can open
-    (ParticipationNavigation). The mobile menu needs no override: Decidim's
-    :mobile_menu registry already lists the processes. Drift: this partial is
-    the 0.31.7 core one with the Meetings/Activity block replaced and the
-    account block untouched; compare against the gem on a Decidim bump. %>
-<div>
-  <%= link_to decidim.pages_path, class: "main-bar__links-desktop__item", "aria-label": t("decidim.menu.help") do %>
-    <%= icon "question-line" %><span><%= t("decidim.menu.help") %></span>
-  <% end %>
-</div>
-<div>
-  <%= link_to decidim_contracts_sk.contracts_path, class: "main-bar__links-desktop__item", "aria-label": t("decidim.contracts_sk.menu.contracts") do %>
-    <%= icon "file-text-line" %><span><%= t("decidim.contracts_sk.menu.contracts") %></span>
-  <% end %>
-</div>
-
-<% if ParticipationNavigation.processes?(current_organization, current_user, request.env) %>
+<%# Host override of decidim-core's header main links (0.32.1). Upstream's
+    desktop header carries only the account block and the "Menu" dropdown (the
+    :menu registry); there are no Help / Meetings / Activity links to replace
+    any more. Civora is a contracts platform, so three links stay on the bar
+    itself, ahead of the account block: Help, the contracts catalogue (the
+    :menu registry item only reaches the footer and the breadcrumb dropdown),
+    and a "Participation" link to the processes index shown only when the
+    organization has processes a visitor can open (ParticipationNavigation).
+    The mobile menu needs no override: Decidim's :mobile_menu registry already
+    lists the processes. Drift: this partial is the 0.32.1 core one with the
+    block marked "Civora" inserted at the top of the wrapper; compare against
+    the gem on a Decidim bump (test/integration/header_overrides_drift_test.rb). %>
+<div class="flex items-center gap-x-8">
+  <%# Civora: start %>
   <div>
-    <%= link_to ParticipationNavigation.path, class: "main-bar__links-desktop__item", "aria-label": t("civora.menu.participation") do %>
-      <%= icon "group-line" %><span><%= t("civora.menu.participation") %></span>
+    <%= link_to decidim.pages_path, class: "main-bar__links-desktop__item", "aria-label": t("layouts.decidim.footer.help") do %>
+      <%= icon "question-line" %><span><%= t("layouts.decidim.footer.help") %></span>
     <% end %>
   </div>
-<% end %>
-
-<% if !current_user %>
   <div>
-    <%= link_to decidim.new_user_session_path, class: "main-bar__links-desktop__item", "aria-label": t("layouts.decidim.header.log_in") do %>
-      <%= icon "user-line" %><span><%= t("layouts.decidim.header.log_in") %></span>
+    <%= link_to decidim_contracts_sk.contracts_path, class: "main-bar__links-desktop__item", "aria-label": t("decidim.contracts_sk.menu.contracts") do %>
+      <%= icon "file-text-line" %><span><%= t("decidim.contracts_sk.menu.contracts") %></span>
     <% end %>
   </div>
-<% else %>
-  <div class="main-bar__dropdown-container">
-    <button id="trigger-dropdown-account" class="main-bar__dropdown-trigger" data-controller="dropdown" data-target="dropdown-menu-account">
-      <% unread_data = current_user_unread_data %>
-      <% if unread_data[:unread_items] %>
-        <%= content_tag :span, "", class: "main-bar__notification", data: unread_data %>
-        <% if unread_data[:unread_notifications] %>
-          <%= content_tag :span, t("layouts.decidim.user_menu.unread_notifications"), class: "sr-only" %>
-        <% end %>
-        <% if unread_data[:unread_conversations] %>
-          <%= content_tag :span, t("layouts.decidim.user_menu.unread_conversations"), class: "sr-only" %>
-        <% end %>
+  <% if ParticipationNavigation.processes?(current_organization, current_user, request.env) %>
+    <div>
+      <%= link_to ParticipationNavigation.path, class: "main-bar__links-desktop__item", "aria-label": t("civora.menu.participation") do %>
+        <%= icon "group-line" %><span><%= t("civora.menu.participation") %></span>
       <% end %>
-      <% if current_user.avatar.attached? %>
-        <span class="main-bar__avatar">
-          <span>
-            <%= image_tag(
-                  current_user.attached_uploader(:avatar).variant_url(:thumb),
-                  alt: t("decidim.author.avatar", name: decidim_sanitize(current_user.avatar.name))
-                ) %>
+    </div>
+  <% end %>
+  <%# Civora: end %>
+  <% if !current_user %>
+    <div>
+      <%= link_to decidim.new_user_session_path, class: "main-bar__links-desktop__item", "aria-label": t("layouts.decidim.header.log_in") do %>
+        <%= icon "user-line" %><span><%= t("layouts.decidim.header.log_in") %></span>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="main-bar__dropdown-container">
+      <button id="trigger-dropdown-account" class="main-bar__dropdown-trigger" data-controller="dropdown" data-target="dropdown-menu-account">
+        <% unread_data = current_user_unread_data %>
+        <% if unread_data[:unread_items] %>
+          <%= content_tag :span, "", class: "main-bar__notification", data: unread_data %>
+          <% if unread_data[:unread_notifications] %>
+            <%= content_tag :span, t("layouts.decidim.user_menu.unread_notifications"), class: "sr-only" %>
+          <% end %>
+          <% if unread_data[:unread_conversations] %>
+            <%= content_tag :span, t("layouts.decidim.user_menu.unread_conversations"), class: "sr-only" %>
+          <% end %>
+        <% end %>
+        <% if current_user.avatar.attached? %>
+          <span class="main-bar__avatar">
+            <span>
+              <%= image_tag(
+                    current_user.attached_uploader(:avatar).variant_url(:thumb),
+                    alt: t("decidim.author.avatar", name: decidim_sanitize(current_user.avatar.name))
+                  ) %>
+            </span>
           </span>
-        </span>
-      <% else %>
-        <span class="main-bar__links-desktop__item-account">
-          <%= text_initials(current_user.name) %>
-        </span>
-      <% end %>
-    </button>
-    <div id="dropdown-menu-account" aria-hidden="true">
-      <ul class="dropdown dropdown__bottom main-bar__dropdown">
-        <%= render partial: "layouts/decidim/header/main_links_dropdown", locals: { unread_data: } %>
-      </ul>
+        <% else %>
+          <span class="main-bar__links-desktop__item-account">
+            <%= text_initials(current_user.name) %>
+          </span>
+        <% end %>
+      </button>
+      <div id="dropdown-menu-account" aria-hidden="true" data-controller="assign-role" data-role="dialog">
+        <ul class="dropdown dropdown__bottom main-bar__dropdown">
+          <%= render partial: "layouts/decidim/header/main_links_dropdown", locals: { unread_data: } %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
+  <button id="main-dropdown-summary-desktop" class="main-bar__links-desktop__trigger"
+          data-controller="main-menu"
+          data-close-button="main-dropdown-summary-desktop-close"
+          data-target="dropdown-menu-main-desktop" aria-expanded="false">
+    <%= icon "menu-line" %><span><%= t("menu", scope: "decidim.admin.titles") %></span>
+  </button>
+
+  <div id="dropdown-menu-main-desktop" class="main-bar__links-desktop__dropdown main-bar__links-desktop__dropdown-before" aria-hidden="true">
+    <div id="breadcrumb-main-dropdown-desktop" class="menu-bar__main-dropdown menu-bar__dropdown-desktop">
+      <button id="main-dropdown-summary-desktop-close" class="main-bar__links-desktop__trigger">
+        <%= icon "close-line" %><span><%= t("close", scope: "layouts.decidim.header") %></span>
+      </button>
+      <%= breadcrumb_root_menu.render %>
+      <div class="menu-bar__main-dropdown__left">
+        <%= cell("decidim/highlighted_participatory_process", menu_highlighted_participatory_process) %>
+      </div>
     </div>
   </div>
-<% end %>
+</div>

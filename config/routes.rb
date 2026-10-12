@@ -3,7 +3,26 @@
 Rails.application.routes.draw do
   mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
 
-  mount Decidim::ContractsSk::Engine, at: "/contracts"
+  # Decidim 0.32 puts the locale in the URL (/sk/processes/...), so the
+  # contracts engine is mounted inside the same locale scope as the core
+  # engine. Without it the language chooser (a core controller that redirects to
+  # the path-prefixed URL) ends in a 404 on engine pages. The legacy
+  # un-prefixed paths (bookmarks, open-data URLs, CRZ handoff links) are
+  # redirected permanently, query string kept. `format: false` keeps the
+  # extension of a stored link (/contracts/export.csv); without it the glob
+  # swallows ".csv". Declared before the core engine mount. Reference:
+  # decidim-contracts_sk docs/locale-urls.md (civora-org/civora-platform#183, #186).
+  extend Decidim::Routes::LocaleRedirects
+
+  scope "/:locale", **locale_scope_options do
+    mount Decidim::ContractsSk::Engine, at: "/contracts"
+  end
+
+  get "/contracts", to: redirect(&locale_redirector("/contracts"))
+  get "/contracts/*rest", format: false, to: redirect { |params, request|
+    locale_redirect(params, request, "/contracts/#{params[:rest]}")
+  }
+
   mount Decidim::Core::Engine => "/"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
