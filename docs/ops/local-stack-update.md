@@ -11,12 +11,13 @@ This is **not** a production deploy. There is no production host yet; for a serv
 | Host app (`civora-host`) | **Baked into the Docker image** `civora-host:latest` | `git pull` + `docker compose build app` |
 | Engine (`decidim-contracts_sk`) | **Mounted** from the engine repo's worktree `.claude/worktrees/host-main` (read-only bind mount at `/opt/decidim-contracts_sk`) | `git checkout` in that worktree + puma restart |
 | Gemfile inside the container | `Gemfile.dev-engine` (uncommitted, bind-mounted over `/app/Gemfile`): a copy of `Gemfile` with the engine line switched to `path:` | Regenerate whenever `Gemfile` changes |
-| Dev overrides | `docker-compose.override.yml` (uncommitted): `command: sleep infinity`, the mounts above, `BUNDLE_FROZEN=0` | Rarely |
+| Dev image | `civora-host:dev`, built from `Dockerfile.dev` (uncommitted): the production image plus `git`, which the path-mounted engine's gemspec needs | Rebuild after every `civora-host:latest` build (step 5) |
+| Dev overrides | `docker-compose.override.yml` (uncommitted): runs `civora-host:dev`, starts puma itself, the mounts above, `BUNDLE_FROZEN=0` | Rarely |
 | Database | Postgres volume, database `decidim_app_production` | Migrations |
 
-Two uncommitted files make this work: `Gemfile.dev-engine` and `docker-compose.override.yml`. Don't delete them, and don't commit them.
+Three uncommitted files make this work: `Gemfile.dev-engine`, `docker-compose.override.yml` and `Dockerfile.dev`. Don't delete them, and don't commit them. Their contents are at the end of this page, so they can be recreated.
 
-Because of `command: sleep infinity`, **puma does not start by itself**. You start it by hand (step 8).
+Since 2026-10-12, **puma starts by itself** when the container starts (`bundle install --local` first, then puma), so a Docker or laptop restart brings the site back in about 10 seconds. Before that, the override ran `sleep infinity` and puma had to be started by hand; a Docker Desktop restart left the demo site down.
 
 ## Procedure
 
@@ -49,18 +50,14 @@ Run the steps in order. Expect 15–20 minutes, plus the time any data backfill 
    git -C ~/Code/decidim-contracts_sk/.claude/worktrees/host-main checkout --detach origin/main
    ```
 
-5. **Rebuild the image and recreate the containers.** The build takes 2–5 minutes.
+5. **Rebuild the images and recreate the containers.** The build takes 2–5 minutes. Build the production image first, then the dev image on top of it. (`docker compose build app` does nothing here, because the override removes the app's `build:`.)
    ```bash
-   docker compose build app
+   docker build -t civora-host:latest .
+   docker build -t civora-host:dev -f Dockerfile.dev .
    docker compose up -d app scheduler
    ```
 
-6. **Install git in the container and resolve the bundle.** The image has no `git`, but the engine's gemspec runs `git ls-files` when it is loaded from a path. This is a dev-only workaround; production installs the engine as a git gem.
-   ```bash
-   docker exec -u root civora-host-app-1 sh -c 'apt-get update -qq && apt-get install -y -qq git && git config --system --add safe.directory "*"'
-   docker exec civora-host-app-1 sh -c 'cd /app && bundle install --local'
-   ```
-   Check that the bundle uses the mounted engine:
+6. **Check the bundle.** The container resolves it on start (`bundle install --local`). Check that it uses the mounted engine:
    ```bash
    docker exec civora-host-app-1 bundle info decidim-contracts_sk
    ```
@@ -74,15 +71,11 @@ Run the steps in order. Expect 15–20 minutes, plus the time any data backfill 
    docker exec civora-host-app-1 sh -c 'cd /app && bin/rails db:migrate'
    ```
 
-8. **Start puma.**
+8. **Restart the app** so puma loads the migrated schema:
    ```bash
-   docker exec -d civora-host-app-1 sh -c 'cd /app && bundle exec puma -C config/puma.rb > /app/log/puma.out 2>&1'
+   docker restart civora-host-app-1
    ```
-   To restart it later:
-   ```bash
-   docker exec civora-host-app-1 pkill -f puma
-   ```
-   Then run the start command again.
+   Puma's output is in `docker logs civora-host-app-1`.
 
 9. **Smoke check.** Each of these should return `200`:
    ```bash
@@ -182,3 +175,42 @@ bin/rails "civora:home:participation[3]"
 **Demo data:** Vranov (org 3) got the labelled demo process "UKÁŽKA – Participatívny rozpočet (fiktívne údaje)" (`civora:demo:proposal_to_contract[3]`, then retitled). Its one demo contract is `DEMO-2026-010`, "UKÁŽKA – …".
 
 **Gotcha hit:** the processes block rendered **above** the hero in both orgs, because their hero blocks had `weight: nil` and Postgres sorts NULLs last. Fixed by hand on the stack (hero = 1, processes = 2). The task itself is fixed in civora-host#37.
+
+
+### 2026-10-12 — puma starts by itself; Považská Bystrica data refresh
+
+- **Why:** Docker restarted the app container on its own on 12. 10. (no `RestartCount`, fresh `StartedAt`). Puma had been started by hand, so the demo site stayed down until noticed.
+- **Change:** new `Dockerfile.dev` → `civora-host:dev` (production image + git); the override runs it and starts puma (see the files below). Proved with `docker restart civora-host-app-1`: back to 200 in ~9 s, engine still mounted from `host-main`.
+- **Backup:** `backups/pre-autostart-2026-10-12.dump`.
+- **Data:** `bin/crz-first-sync 1 2026-10-04T00:00:00Z` → 2 new Považská Bystrica contracts (642 published CRZ mirrors); attachment backfill for them. 29 fictional `DEMO-*`/`MANUAL-*` records archived out of the public catalogue (list in the container at `/app/tmp/pb-archived-demo-refs.txt`); `DEMO-2026-010` kept and retitled "UKÁŽKA – …"; the demo process retitled "UKÁŽKA – Participatívny rozpočet (fiktívne údaje)"; the old "Demo: detske ihrisko" process unpublished.
+
+## The uncommitted dev files
+
+`Dockerfile.dev`:
+```dockerfile
+FROM civora-host:latest
+USER root
+RUN apt-get update -qq \
+ && apt-get install -y --no-install-recommends git \
+ && git config --system --add safe.directory '*' \
+ && rm -rf /var/lib/apt/lists/*
+USER rails
+```
+
+`docker-compose.override.yml`:
+```yaml
+services:
+  app:
+    build: !reset null
+    image: civora-host:dev
+    command: ["sh", "-c", "bundle install --local --quiet && exec bundle exec puma -C config/puma.rb"]
+    environment:
+      BUNDLE_DEPLOYMENT: "0"
+      BUNDLE_FROZEN: "0"
+      BUNDLE_LOCAL__DECIDIM_CONTRACTS_SK: /opt/decidim-contracts_sk
+    volumes:
+      - /Users/<you>/Code/decidim-contracts_sk:/opt/decidim-contracts_sk:ro
+      - /Users/<you>/Code/decidim-app/Gemfile.dev-engine:/app/Gemfile:ro
+```
+
+`Gemfile.dev-engine`: generated from `Gemfile` in step 3.
