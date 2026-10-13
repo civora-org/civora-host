@@ -10,7 +10,8 @@ Rails.application.routes.draw do
   # un-prefixed paths (bookmarks, open-data URLs, CRZ handoff links) are
   # redirected permanently, query string kept. `format: false` keeps the
   # extension of a stored link (/contracts/export.csv); without it the glob
-  # swallows ".csv". Declared before the core engine mount. Reference:
+  # swallows ".csv". Declared before the core engine mount; the POST route
+  # forwards into the engine without a redirect (see LegacyContractsRoutes). Reference:
   # decidim-contracts_sk docs/locale-urls.md (civora-org/civora-platform#183, #186).
   extend Decidim::Routes::LocaleRedirects
 
@@ -18,10 +19,15 @@ Rails.application.routes.draw do
     mount Decidim::ContractsSk::Engine, at: "/contracts"
   end
 
-  get "/contracts", to: redirect(&locale_redirector("/contracts"))
-  get "/contracts/*rest", format: false, to: redirect { |params, request|
-    locale_redirect(params, request, "/contracts/#{params[:rest]}")
+  get "/contracts", to: redirect { |params, request|
+    locale_redirect(params.merge(locale: LegacyContractsRoutes.locale_for(request)), request, "/contracts")
   }
+  get "/contracts/*rest", format: false, to: redirect { |params, request|
+    locale_redirect(params.merge(locale: LegacyContractsRoutes.locale_for(request)), request, LegacyContractsRoutes.escaped_path(params[:rest]))
+  }
+  # POSTs from pages and e-mails that predate the upgrade (the one-click
+  # List-Unsubscribe-Post, a stale form) are served in place, not redirected.
+  post "/contracts/*rest", format: false, to: LegacyContractsRoutes.method(:forward_post)
 
   mount Decidim::Core::Engine => "/"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
