@@ -14,9 +14,12 @@
 # - rubyzip >= 3.4.0 is unresolvable under decidim-core's `~> 2.0`.
 # Everything else is fixed by `bundle update` within the constraints; this
 # file only ever holds what is provably upstream-blocked.
+# Pruned in civora-org/civora-platform#188: each entry below was re-run
+# against an empty ignore list on 2026-10-13 and is still reported. The
+# brakeman EOLRails ignore is gone (Rails 8.1). Exposure of each entry:
+# docs/ops/security-updates.md. rubyzip: see "rubyzip mitigation" there.
 # REVISIT: every entry, on the next Decidim upgrade that relaxes these pins
-# (full pruning of this file and of config/brakeman.ignore is
-# civora-org/civora-platform#188).
+# (0.33 or a 0.32.x patch); review monthly.
 # Mirrors .bundler-audit.yml in the engine (decidim-contracts_sk).
 ---
 ignore:
@@ -30,5 +33,7 @@ ignore:
   - GHSA-j7xr-4g94-r9h3
   # rack-proxy 0.8.3 (decidim-core pin); also ignored in the engine
   - GHSA-42qh-8mx8-7wqm
-  # rubyzip 2.3.2 (decidim-core pin): path traversal on extraction (High)
+  # rubyzip 2.3.2 (decidim-core pin): path traversal on extraction (High).
+  # Only reachable through doc2text's ODT unpack in the admin participatory-
+  # text import; mitigation in docs/ops/security-updates.md.
   - CVE-2026-85396

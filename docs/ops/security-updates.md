@@ -87,9 +87,28 @@ At the monthly review, and every time a Decidim release comes out:
 
 1. For each row: does a resolvable fixed version exist now? Try `bundle update --conservative <gem>` on a throwaway branch and look at what Bundler says is holding it. Check whether the Decidim release notes relax the pin.
 2. If the pin is gone, update the gem, delete the ignore **in the same PR**, and let CI prove the audit is clean.
-3. If it is still blocked, keep the entry and re-confirm the **exposure** in one or two sentences next to it in the PR description: is the code path reachable on this stack (public, admin-only, build-time only, not enabled)? This exposure statement has not been written yet for the existing entries; the first review writes it, which also matters for the data-protection risk assessment each municipality may ask for.
-4. Re-read `config/brakeman.ignore` on the same schedule (its Rails EOL entry is obsolete and goes in civora-org/civora-platform#188).
+3. If it is still blocked, keep the entry and re-confirm the **exposure** in one or two sentences next to it in the PR description: is the code path reachable on this stack (public, admin-only, build-time only, not enabled)? The rubyzip statement is written below; write the same for graphql and rack-proxy at the first review, which also matters for the data-protection risk assessment each municipality may ask for.
+4. Re-read `config/brakeman.ignore` on the same schedule. It holds one entry (the operator-run onboarding sync runner); the Rails EOL entry was removed with the Rails 8.1 upgrade (civora-org/civora-platform#188).
 5. Update the header of `.bundler-audit.yml` and this table in the same PR when the list changes. Never add a gem-wide ignore, and never add an entry without naming what blocks it and what would unblock it.
+
+### rubyzip mitigation (CVE-2026-85396)
+
+The advisory is a path traversal when entries of an untrusted archive are extracted to disk. Checked on 2026-10-13 (civora-org/civora-platform#188) against the host, the engine and the installed Decidim 0.32.1 gems:
+
+| Where | What it does with zips | Exposure |
+|---|---|---|
+| Host `app/`, `lib/`, `config/` and the engine `decidim-contracts_sk` | No zip code. The engine's spreadsheet import reads CSV only and rejects XLSX (NUL-byte check). | None |
+| `decidim-core` (`FileZipper`, `OpenDataExporter`, `DownloadYourDataExporter`) | Writes zips (`Zip::OutputStream`) from server-side data. | None (no extraction) |
+| `decidim-core` / `decidim-admin` XLSX export and import (`rubyXL`) | `RubyXL::Parser.parse` opens the zip and reads entries into memory; nothing is written to a path derived from an entry name. | Not exploitable for path traversal |
+| `decidim-proposals` participatory-text import (`DocToMarkdown` -> `doc2text` 0.4.8, ODT) | `Doc2Text::XmlBasedDocumentFile#unpack` calls `zip_file.extract entry, File.join(extract_path, entry.name)` on an uploaded ODT. **This is the one reachable extraction.** | Admin-only, and only when a Proposals component has `participatory_texts_enabled` (default `false`, not enabled in the contracts workflow) |
+
+Mitigation, in place:
+
+1. The upload path is behind Decidim admin authentication and the admin file-type allow-list; participants and the public never reach it.
+2. Keep `participatory_texts_enabled` off. Do not enable the participatory-text import on a pilot organisation; if a municipality asks for it, treat it as a risk decision (see Exit plan) and accept ODT files only from the municipality's own staff.
+3. The app container runs as the unprivileged `rails` user (Dockerfile `USER rails`), so a traversal can only overwrite files that user owns, not system files.
+
+Re-check on each Decidim release: `decidim-core` relaxing `rubyzip ~> 2.0`, or `doc2text` moving off `rubyzip ~> 2.3.0`, lifts the pin; then update rubyzip >= 3.4.0 and delete the ignore in the same PR.
 
 ### Exit plan
 
