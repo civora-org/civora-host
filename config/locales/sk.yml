@@ -9,6 +9,13 @@
 # Pridajte sa, zapojte sa a rozhodujte.") invites citizens to participate
 # and decide, which a contracts register does not offer.
 sk:
+  # Core's "Neplatný%{authentication_keys} alebo heslo." glues the words and
+  # does not agree with "E-mailová adresa" (feminine). The sign-in key is
+  # always the e-mail address, so the message names it directly.
+  devise:
+    failure:
+      invalid: Nesprávna e-mailová adresa alebo heslo.
+      not_found_in_database: Nesprávna e-mailová adresa alebo heslo.
   civora:
     footer:
       accessibility: Vyhlásenie o prístupnosti
