@@ -184,6 +184,15 @@ bin/rails "civora:home:participation[3]"
 - **Backup:** `backups/pre-autostart-2026-10-12.dump`.
 - **Data:** `bin/crz-first-sync 1 2026-10-04T00:00:00Z` → 2 new Považská Bystrica contracts (642 published CRZ mirrors); attachment backfill for them. 29 fictional `DEMO-*`/`MANUAL-*` records archived out of the public catalogue (list in the container at `/app/tmp/pb-archived-demo-refs.txt`); `DEMO-2026-010` kept and retitled "UKÁŽKA – …"; the demo process retitled "UKÁŽKA – Participatívny rozpočet (fiktívne údaje)"; the old "Demo: detske ihrisko" process unpublished.
 
+### 2026-10-13 — engine `v1.8.0` → `main` @ `53d3bc9` (admin "Čo treba dnes urobiť")
+
+- **Why:** the simplified admin (civora-org/decidim-contracts_sk#154) and the CRZ licence attribution line (#151) for the 15. 10. demo. The engine supports Decidim 0.31 and 0.32, so the 0.31.7 demo image runs it unchanged.
+- **Backup:** `backups/pre-admin-today-2026-10-13.dump`.
+- **Steps:** `git -C <engine>/.claude/worktrees/host-main checkout --detach origin/main` and `docker restart civora-host-app-1`. No migrations (only a new admin route).
+- **Checked:** public pages in both orgs return 200. The admin home, the contracts list and a contract page with the step bar render (200, no missing translations) in both orgs. The check ran in a one-off `rails runner` session with the 2FA gates relaxed for that process only; the running site keeps both gates.
+- **Rollback:** `git -C <engine>/.claude/worktrees/host-main checkout --detach v1.8.0` and `docker restart civora-host-app-1`.
+- **Note:** host `main` is now on Decidim 0.32.1 (civora-host#43). The demo stack stays on the 0.31.7 image until after the 15. 10. call; then follow `docs/ops/decidim-0.32-upgrade.md`.
+
 ## The uncommitted dev files
 
 `Dockerfile.dev`:
