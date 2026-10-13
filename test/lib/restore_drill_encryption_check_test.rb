@@ -97,7 +97,10 @@ class RestoreDrillEncryptionCheckTest < ActiveSupport::TestCase
   # Swap Decidim's memoized cryptor for one keyed from a random secret_key_base.
   def with_wrong_key
     original = Decidim::AttributeEncryptor.instance_variable_get(:@cryptor)
-    # 0.32's cryptor is an AttributeEncryptor (it falls back to SHA1 on its own); keyed from another secret it cannot decrypt.
+    # 0.32's cryptor is an AttributeEncryptor. Keyed from another secret_key_base it cannot decrypt
+    # what the test key wrote. Caveat: its SHA1 fallback (legacy_encryptor) is built without this
+    # option and reads the REAL Rails.application.secret_key_base, but the seeds here are SHA256, so
+    # the fallback cannot rescue them. Legacy (0.31, SHA1) rows are covered in legacy_sha1_encryption_test.rb.
     Decidim::AttributeEncryptor.instance_variable_set(:@cryptor, Decidim::AttributeEncryptor.new(secret: "attribute", secret_key_base: SecureRandom.hex(64)))
     yield
   ensure
