@@ -20,7 +20,7 @@ class AccessibilityStatementTest < ActiveSupport::TestCase
   end
 
   def page_for(organization)
-    Decidim::StaticPage.find_by!(organization: organization, slug: AccessibilityStatement::SLUG)
+    Decidim::StaticPage.find_by!(organization:, slug: AccessibilityStatement::SLUG)
   end
 
   test "creates a public static page with the model-statement sections in sk and en" do

@@ -61,7 +61,7 @@ docker compose exec -T db psql -U postgres -d decidim_app_production -Atc "
 - Counts match the manifest (organizations = 1, blobs/attachments match pre-backup state).
 - Attachment files present: blob count in DB == files under the `app-storage` volume (`docker run --rm civora-host_app-storage:... find /dst -type f | wc -l`).
 - Freshness: `MAX(created_at)` on key tables is consistent with the backup timestamp (no post-backup data expected — that window is the accepted RPO loss).
-- Smoke: `curl -fsS http://localhost:3000/contracts` → 200; admin sign-in works.
+- Smoke: `curl -fsSL http://localhost:3000/contracts` → 200; admin sign-in works.
 - Decryption: `docker compose exec -T app ./bin/rails restore_drill:verify_encryption` decrypts a sample of TOTP seeds and authorization metadata and prints counts only (exit 0 = decrypted, 1 = could not decrypt, 3 = no encrypted rows). Exit 1 means the app is not running with the backup's `SECRET_KEY_BASE`. Do not hand the restored stack to users until it exits 0.
 
 ## Scheduled operation

@@ -79,7 +79,7 @@ Run the steps in order. Expect 15–20 minutes, plus the time any data backfill 
 
 9. **Smoke check.** Each of these should return `200`:
    ```bash
-   for u in http://localhost:3000/ http://localhost:3000/contracts http://localhost:3000/processes http://vranov.localhost:3000/contracts; do curl -s -o /dev/null -w "%{http_code} $u\n" $u; done
+   for u in http://localhost:3000/ http://localhost:3000/contracts http://localhost:3000/processes http://vranov.localhost:3000/contracts; do curl -sL -o /dev/null -w "%{http_code} $u\n" $u; done
    ```
    Then click through the demo once in a browser.
 

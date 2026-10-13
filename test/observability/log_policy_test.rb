@@ -43,7 +43,7 @@ class LogPolicyTest < ActiveSupport::TestCase
     # Rails may keep the raw symbol list or the compiled Regexp depending on
     # when it is inspected; normalise both to searchable strings.
     compiled = Rails.application.config.filter_parameters
-    source = compiled.is_a?(Regexp) ? compiled.source : Array(compiled).map(&:to_s).join("|")
+    source = compiled.is_a?(Regexp) ? compiled.source : Array(compiled).join("|")
     %w(passw email secret token _key crypt salt certificate otp ssn).each do |param|
       assert_includes source, param, "documented app filter missing: #{param}"
     end

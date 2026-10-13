@@ -104,7 +104,7 @@ class ProposalToContractSeedTest < ActiveSupport::TestCase
   test "leaves an existing DEMO-2026-010 as it is, only linking it and filling the missing parties and CRZ filing" do
     author = FactoryBot.create(:user, :confirmed, organization: @organization)
     existing = Decidim::ContractsSk::Contract.create!(
-      organization: @organization, author: author, reference: "DEMO-2026-010", state: "published",
+      organization: @organization, author:, reference: "DEMO-2026-010", state: "published",
       title: "Ručne upravený názov", amount: BigDecimal("1234.50"), published_at: Time.zone.local(2026, 9, 1, 12)
     )
     existing.parties.create!(role: "contractor", name: "Vlastný dodávateľ s.r.o.", ico: "00000099")

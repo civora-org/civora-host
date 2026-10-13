@@ -66,23 +66,23 @@ module CivoraOnboard
         pass = @runner.call(@organization_id, since)
         @log.call(pass.output.to_s.rstrip) if pass.output.to_s.strip.present?
 
-        return Outcome.new(status: :complete, passes: passes, last_since: since) if pass.success
-        return Outcome.new(status: :failed, passes: passes, last_since: since) unless pass.output.to_s.include?(STOP_MARKER)
+        return Outcome.new(status: :complete, passes:, last_since: since) if pass.success
+        return Outcome.new(status: :failed, passes:, last_since: since) unless pass.output.to_s.include?(STOP_MARKER)
 
         next_since = self.class.resume_since(pass.output)
-        return Outcome.new(status: :failed, passes: passes, last_since: since) unless next_since
+        return Outcome.new(status: :failed, passes:, last_since: since) unless next_since
 
         # Never move backwards; an unchanged since means no progress this pass.
         advanced = Time.iso8601(next_since) > Time.iso8601(since)
         stalls = advanced ? 0 : stalls + 1
-        return Outcome.new(status: :stalled, passes: passes, last_since: since) if stalls >= @max_stalls
+        return Outcome.new(status: :stalled, passes:, last_since: since) if stalls >= @max_stalls
 
         since = next_since if advanced
         @log.call("[onboard] rate-limited; waiting #{@wait}s, resuming since #{since}")
         @sleeper.call(@wait)
       end
 
-      Outcome.new(status: :max_passes, passes: passes, last_since: since)
+      Outcome.new(status: :max_passes, passes:, last_since: since)
     end
 
     private
@@ -97,7 +97,7 @@ module CivoraOnboard
         Rails.root.join("bin/rails").to_s,
         "decidim_contracts_sk:crz_import:sync[#{organization_id},#{since}]"
       )
-      Pass.new(since: since, success: status.success?, output: output)
+      Pass.new(since:, success: status.success?, output:)
     end
   end
 end

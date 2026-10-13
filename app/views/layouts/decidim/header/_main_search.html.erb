@@ -1,10 +1,16 @@
-<%# Host override of decidim-core's topbar search (0.31.7 submits to the
+<%# Host override of decidim-core's topbar search (0.32.1 submits to the
     global Decidim search, which indexes participatory spaces — none exist on
     a contracts-only platform, so it always returned nothing). Civora routes
     it to the contracts catalogue's own full-text filter (the engine's `q`
     param: title + reference, case-insensitive) so the topbar search is the
-    catalogue search. %>
+    catalogue search. Drift: the 0.32.1 core partial puts the submit button
+    before the input (0.31.7 had it after); only the form target, the field
+    name/value and the placeholder differ. Compare against the gem on a
+    Decidim bump. %>
 <%= form_tag(decidim_contracts_sk.contracts_path, method: :get, id: "form-search_topbar") do %>
+  <button type="submit" aria-label="<%= t("decidim.search.term_input_placeholder") %>">
+    <%= icon "search-line" %>
+  </button>
   <%= text_field_tag(
     :q,
     nil,
@@ -15,7 +21,4 @@
     title: t("decidim.contracts_sk.contracts.index.search_label"),
     "aria-label": t("decidim.contracts_sk.contracts.index.search_label")
   ) %>
-  <button type="submit" aria-label="<%= t("decidim.search.term_input_placeholder") %>">
-    <%= icon "search-line" %>
-  </button>
 <% end %>

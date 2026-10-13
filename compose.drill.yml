@@ -5,6 +5,9 @@
 # Run only via: docker compose -p civora-restore-drill -f compose.yaml -f compose.drill.yml
 services:
   app:
+    # DRILL_IMAGE lets a candidate image (a release build, an upgrade branch) be
+    # drilled without retagging the stack's own civora-host:latest.
+    image: ${DRILL_IMAGE:-civora-host:latest}
     environment:
       DATABASE_PASSWORD: ${DRILL_PASSWORD:?drill-only overlay}
       SECRET_KEY_BASE: ${DRILL_KEYBASE:?drill-only overlay}

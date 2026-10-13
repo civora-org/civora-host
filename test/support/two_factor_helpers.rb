@@ -33,7 +33,15 @@ module TwoFactorHelpers
   end
 
   def sign_in_with_password(user)
-    post "/users/sign_in", params: { user: { email: user.email, password: PASSWORD } }
+    post "/sk/users/sign_in", params: { user: { email: user.email, password: PASSWORD } }
+  end
+
+  # Decidim 0.32 adds ?locale= to host-owned (un-scoped) routes and prefixes
+  # its own with the locale, so compare the redirect target by path only.
+  def assert_redirected_path(expected, message = nil)
+    assert_response :redirect, message
+    path = URI(response.location).path
+    expected.is_a?(Regexp) ? assert_match(expected, path, message) : assert_equal(expected, path, message)
   end
 
   # CI compiles no webpack bundle, so asset lookups would raise on the empty

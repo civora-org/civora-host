@@ -8,21 +8,21 @@ Roles: the **maintainer** does all of this in the pilot (see the roles table in 
 
 | Component | Pin | Where |
 |---|---|---|
-| Decidim | 0.31.7 (exact, `=`) | `Gemfile`, `Gemfile.lock` |
-| `decidim-contracts_sk` engine | tag `v1.6.0` (git source) | `Gemfile`, `Gemfile.lock`; upgrade steps in README *Upgrading the engine* |
-| Rails | 7.2.3.2 (EOL line, forced by Decidim) | `Gemfile.lock` |
-| Ruby | 3.3.4 | `.ruby-version`, `Dockerfile` (`ruby:3.3.4-slim`) |
+| Decidim | 0.32.1 (exact, `=`) | `Gemfile`, `Gemfile.lock` |
+| `decidim-contracts_sk` engine | tag `v1.8.0` (git source) | `Gemfile`, `Gemfile.lock`; upgrade steps in README *Upgrading the engine* |
+| Rails | 8.1.4 (supported until 2027-10-10; forced by Decidim) | `Gemfile.lock` |
+| Ruby | 3.4.7 | `.ruby-version`, `Dockerfile` (`ruby:3.4.7-slim`), CI |
 | PostgreSQL | 17 | `compose.yaml`; CI service is aligned |
 | Node | 22.14.0 | `.node-version` |
 
-Decidim's meta-gems pin each other and Rails to narrow ranges, so the host cannot move individual core gems freely: `decidim-core` pins `rails ~> 7.2.0`, `shakapacker ~> 8.3.0`, `rubyzip ~> 2.0` and `rack-proxy ~> 0.8.3, < 1.0`, `decidim-api` pins `graphql ~> 2.4.0`, `decidim-dev` pins `puma ~> 6.5` (all in `Gemfile.lock`). That is why part of the advisory list cannot be fixed here.
+Decidim's meta-gems pin each other and Rails to narrow ranges, so the host cannot move individual core gems freely: `decidim-core` pins `rails ~> 8.1.0`, `shakapacker ~> 9.7.0`, `rubyzip ~> 2.0` and `rack-proxy ~> 0.8.3, < 1.0`, `decidim-api` pins `graphql >= 2.4.17, < 2.6` (all in `Gemfile.lock`). That is why part of the advisory list cannot be fixed here.
 
 ## What runs automatically
 
 | Control | Trigger | What it does | Where |
 |---|---|---|---|
 | `bundler-audit check --update` | every PR and every push to `main` | Fails the build on any advisory not listed in `.bundler-audit.yml` | `.github/workflows/ci.yml`, job `audit` |
-| Brakeman `--exit-on-warn` | every PR and push to `main` | Fails on any new warning; one documented ignore for the Rails 7.2 EOL warning | `ci.yml` job `brakeman`, `config/brakeman.ignore` |
+| Brakeman `--exit-on-warn` | every PR and push to `main` | Fails on any new warning; the Rails 7.2 EOL ignore in `config/brakeman.ignore` is obsolete since the 0.32.1 upgrade and is removed in civora-org/civora-platform#188 | `ci.yml` job `brakeman`, `config/brakeman.ignore` |
 | gitleaks, full history | every PR and push to `main` | Fails on committed secrets | `ci.yml` job `secret-scan`, `.gitleaks.toml` |
 | RuboCop, minitest | every PR and push to `main` | Lint and tests (Postgres 17) | `ci.yml` jobs `lint`, `test` |
 | Dependabot | weekly | Opens PRs for GitHub Actions and the Docker base image only | `.github/dependabot.yml` |
@@ -71,15 +71,11 @@ For a critical or actively exploited advisory against a gem or the image that th
 
 ## Upstream-blocked advisories
 
-`.bundler-audit.yml` lists ignores **per advisory, never per gem**, so any new advisory still fails CI and forces a fresh decision. Each entry is blocked by a Decidim 0.31.7 pin:
+`.bundler-audit.yml` lists ignores **per advisory, never per gem**, so any new advisory still fails CI and forces a fresh decision. Each entry is blocked by a Decidim 0.32.1 pin. The 0.32.1 upgrade (civora-org/civora-platform#185) cleared the fifteen advisories that the 0.31.7 pins blocked: ten Rails 7.2 EOL CVEs, two devise, one shakapacker and two puma.
 
 | Gem (locked version) | Why it cannot move | Fix needs | Advisories in `.bundler-audit.yml` |
 |---|---|---|---|
-| rails 7.2.3.2: actionview, activestorage, activesupport | Rails 7.2 is end of life (support ended 2026-08-09, per `config/brakeman.ignore`) and `decidim-core` pins `rails ~> 7.2.0` | A Decidim release on a maintained Rails line | 10 CVEs: CVE-2026-33168, 33173, 33174, 33195, 33202, 33658, 66066, 33169, 33170, 33176 |
-| devise 4.9.4 | Newest release allowed by `devise ~> 4.7` and still unpatched | A patched devise release | CVE-2026-32700, CVE-2026-40295 |
-| shakapacker 8.3.0 | `decidim-core` pins `~> 8.3.0` | shakapacker >= 9.5.0 | GHSA-96qw-h329-v5rg |
-| puma 6.6.1 | `decidim-dev` pins `~> 6.5` | puma >= 7.2.1 | CVE-2026-47736, CVE-2026-47737 |
-| graphql 2.4.18 | `decidim-api` pins `~> 2.4.0` | graphql >= 2.6.9 | GHSA-rmxg-5p3r-j6hh (parser-cache Marshal deserialization) |
+| graphql 2.5.26 | `decidim-api` pins `< 2.6` | graphql >= 2.6.9 | GHSA-rmxg-5p3r-j6hh (parser-cache Marshal deserialization); GHSA-j7xr-4g94-r9h3 (authorization bypass, only under the opt-in `Execution::Next` runtime, which `decidim-api` never enables; needs >= 2.6.6) |
 | rack-proxy 0.8.3 | `decidim-core` pins `< 1.0` | rack-proxy >= 1.0.3 | GHSA-42qh-8mx8-7wqm |
 | rubyzip 2.3.2 | `decidim-core` pins `~> 2.0` | rubyzip >= 3.4.0 | CVE-2026-85396 (path traversal on extraction, High) |
 
@@ -92,12 +88,12 @@ At the monthly review, and every time a Decidim release comes out:
 1. For each row: does a resolvable fixed version exist now? Try `bundle update --conservative <gem>` on a throwaway branch and look at what Bundler says is holding it. Check whether the Decidim release notes relax the pin.
 2. If the pin is gone, update the gem, delete the ignore **in the same PR**, and let CI prove the audit is clean.
 3. If it is still blocked, keep the entry and re-confirm the **exposure** in one or two sentences next to it in the PR description: is the code path reachable on this stack (public, admin-only, build-time only, not enabled)? This exposure statement has not been written yet for the existing entries; the first review writes it, which also matters for the data-protection risk assessment each municipality may ask for.
-4. Re-read `config/brakeman.ignore` on the same schedule; it carries the Rails EOL entry and says "REVISIT: next Decidim major that supports a maintained Rails line".
+4. Re-read `config/brakeman.ignore` on the same schedule (its Rails EOL entry is obsolete and goes in civora-org/civora-platform#188).
 5. Update the header of `.bundler-audit.yml` and this table in the same PR when the list changes. Never add a gem-wide ignore, and never add an entry without naming what blocks it and what would unblock it.
 
 ### Exit plan
 
-The stack cannot leave Rails 7.2 without a Decidim release that does, and forking Decidim is ruled out (`config/brakeman.ignore` calls the EOL line "unfixable without forking Decidim"). The tracked decision is therefore: **upgrade Decidim at the first release that supports a maintained Rails line**, and until then keep these advisories on the review list, keep the exposed surface small, and tell municipalities plainly (the DPA technical measures should not promise "all dependencies current"). Before each pilot extension, the maintainer decides again whether the residual risk is acceptable and records it.
+The stack is on a maintained Rails line (8.1) since the 0.32.1 upgrade. The remaining entries wait for a Decidim release that relaxes the graphql, rack-proxy and rubyzip pins; forking Decidim is ruled out. Until then keep the exposed surface small, re-confirm the exposure of the three entries at each review, and tell municipalities plainly (the DPA technical measures should not promise "all dependencies current"). Decidim supports only the last two minors, so plan the next upgrade (0.33) when it gets a date. Before each pilot extension, the maintainer decides again whether the residual risk is acceptable and records it.
 
 ## Related documents
 

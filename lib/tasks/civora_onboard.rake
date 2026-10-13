@@ -25,7 +25,7 @@ namespace :civora do
       password = ENV.fetch("ONBOARD_ADMIN_PASSWORD", "")
       puts(dry_run ? "DRY RUN (nothing is written)" : "Onboarding #{config.host}")
 
-      result = CivoraOnboard::OrganizationProvisioner.call(config, admin_password: password, dry_run: dry_run)
+      result = CivoraOnboard::OrganizationProvisioner.call(config, admin_password: password, dry_run:)
       organization = result.organization
       id = organization&.id
 
@@ -66,7 +66,7 @@ namespace :civora do
         abort "SINCE is not a valid ISO8601 timestamp: #{since}"
       end
 
-      outcome = CivoraOnboard::SyncResume.new(organization_id: organization.id, since: since).call
+      outcome = CivoraOnboard::SyncResume.new(organization_id: organization.id, since:).call
       puts "CRZ first sync for organization ##{organization.id}: #{outcome.status} after #{outcome.passes} pass(es), last since #{outcome.last_since}"
       exit 1 unless outcome.complete?
     end

@@ -50,7 +50,7 @@ module TwoFactor
         render view, status: :too_many_requests
       else
         form.errors.add(:code, t("two_factor.invalid_code"))
-        render view, status: :unprocessable_entity
+        render view, status: :unprocessable_content
       end
     end
   end

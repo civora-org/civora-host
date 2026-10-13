@@ -61,8 +61,8 @@ for i in $(seq 1 60); do
 done
 echo "    healthy"
 
-code="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/contracts")"
-echo "==> GET /contracts -> $code"
+code="$(curl -sSL -o /dev/null -w '%{http_code}' "$BASE_URL/contracts")"
+echo "==> GET /contracts (following the locale redirect) -> $code"
 [ "$code" = "200" ] || { echo "FAIL: expected 200"; exit 1; }
 
 echo "PASS: clean machine serves /contracts with 200"

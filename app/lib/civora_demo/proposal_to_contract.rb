@@ -66,8 +66,8 @@ module CivoraDemo
         contract = ensure_contract!(editor)
         ensure_contract_links!(contract, result, project)
         ensure_landing_blocks!(space)
-        Result.new(organization: @organization, space: space, proposal: proposal, project: project,
-                   result: result, contract: contract, created: @created)
+        Result.new(organization: @organization, space:, proposal:, project:,
+                   result:, contract:, created: @created)
       end
     end
 
@@ -112,22 +112,22 @@ module CivoraDemo
     end
 
     def find_or_create_user!(email, name, nickname, admin:)
-      user = Decidim::User.find_by(email: email, organization: organization)
+      user = Decidim::User.find_by(email:, organization:)
       return user if user
 
       created! Decidim::User.create!(
-        email: email, organization: organization, name: name, nickname: nickname,
+        email:, organization:, name:, nickname:,
         tos_agreement: "1", accepted_tos_version: organization.tos_version,
         password: SecureRandom.hex(16), # intentionally unknown; reset via the host app
         confirmed_at: Time.current,
-        admin: admin, admin_terms_accepted_at: (Time.current if admin)
+        admin:, admin_terms_accepted_at: (Time.current if admin)
       )
     end
 
     def ensure_process!
-      Decidim::ParticipatoryProcess.find_by(organization: organization, slug: PROCESS_SLUG) ||
+      Decidim::ParticipatoryProcess.find_by(organization:, slug: PROCESS_SLUG) ||
         created!(Decidim::ParticipatoryProcess.create!(
-                   organization: organization, slug: PROCESS_SLUG, published_at: Time.zone.local(2026, 1, 15, 9),
+                   organization:, slug: PROCESS_SLUG, published_at: Time.zone.local(2026, 1, 15, 9),
                    title: loc(TITLES[:process]),
                    subtitle: loc("Rozhodnite, na čo obec použije 25 000 eur"),
                    short_description: loc("<p>Obyvatelia navrhujú a vyberajú projekty, ktoré obec zrealizuje z vyhradeného rozpočtu.</p>"),
@@ -145,7 +145,7 @@ module CivoraDemo
     LANDING_BLOCKS = %w(hero main_data extra_data stats highlighted_proposals highlighted_results metadata).freeze
 
     def ensure_landing_blocks!(space)
-      scope = Decidim::ContentBlock.where(organization: organization, scope_name: "participatory_process_homepage",
+      scope = Decidim::ContentBlock.where(organization:, scope_name: "participatory_process_homepage",
                                           scoped_resource_id: space.id)
       LANDING_BLOCKS.each_with_index do |name, index|
         next if scope.exists?(manifest_name: name)
@@ -174,8 +174,8 @@ module CivoraDemo
     def ensure_component!(space, manifest_name, name, settings: {}, step_settings: {})
       Decidim::Component.find_by(participatory_space: space, manifest_name: manifest_name.to_s) ||
         created!(Decidim::Component.create!(
-                   manifest_name: manifest_name, participatory_space: space, name: loc(name),
-                   published_at: Time.zone.local(2026, 1, 15, 9), settings: settings, step_settings: step_settings
+                   manifest_name:, participatory_space: space, name: loc(name),
+                   published_at: Time.zone.local(2026, 1, 15, 9), settings:, step_settings:
                  ))
     end
 
@@ -194,7 +194,7 @@ module CivoraDemo
     }.freeze
 
     def translate_proposal_states!(component, organization)
-      Decidim::Proposals::ProposalState.where(component: component, token: STATE_KEYS.keys).find_each do |state|
+      Decidim::Proposals::ProposalState.where(component:, token: STATE_KEYS.keys).find_each do |state|
         title_key, reason_key = STATE_KEYS.fetch(state.token)
         locales = organization.available_locales.map(&:to_s)
         title = locales.index_with { |l| I18n.with_locale(l) { I18n.t(title_key, scope: "decidim.proposals.answers") } }
@@ -205,14 +205,14 @@ module CivoraDemo
 
     def ensure_proposal!(space, resident)
       component = ensure_component!(space, :proposals, "Návrhy obyvateľov")
-      Decidim::Proposals.create_default_states!(component, nil, with_traceability: false) unless Decidim::Proposals::ProposalState.exists?(component: component)
+      Decidim::Proposals.create_default_states!(component, nil, with_traceability: false) unless Decidim::Proposals::ProposalState.exists?(component:)
       translate_proposal_states!(component, space.organization)
 
-      proposal = find_by_title(Decidim::Proposals::Proposal.where(component: component), TITLES[:proposal])
+      proposal = find_by_title(Decidim::Proposals::Proposal.where(component:), TITLES[:proposal])
       return proposal if proposal
 
       proposal = Decidim::Proposals::Proposal.new(
-        component: component, published_at: Time.zone.local(2026, 2, 10, 18),
+        component:, published_at: Time.zone.local(2026, 2, 10, 18),
         title: loc(TITLES[:proposal]),
         body: loc("Pri materskej škole chýba bezpečné ihrisko pre deti od troch do šiestich rokov. Navrhujem nové ihrisko " \
                   "s hernými prvkami (preliezky, hojdačky, pieskovisko) a dopadovým povrchom. Pozemok je obecný."),
@@ -234,15 +234,15 @@ module CivoraDemo
     def ensure_project!(space, step, proposal)
       component = ensure_component!(space, :budgets, "Rozpočet",
                                     step_settings: { step.id.to_s => { votes: "finished" } })
-      budget = find_by_title(Decidim::Budgets::Budget.where(component: component), TITLES[:budget]) ||
+      budget = find_by_title(Decidim::Budgets::Budget.where(component:), TITLES[:budget]) ||
                created!(Decidim::Budgets::Budget.create!(
-                          component: component, title: loc(TITLES[:budget]), total_budget: 60_000,
+                          component:, title: loc(TITLES[:budget]), total_budget: 60_000,
                           description: loc("<p>Rozpočet určený na projekty, o ktorých rozhodli obyvatelia.</p>")
                         ))
 
-      project = find_by_title(Decidim::Budgets::Project.where(budget: budget), TITLES[:project])
+      project = find_by_title(Decidim::Budgets::Project.where(budget:), TITLES[:project])
       project ||= created!(Decidim::Budgets::Project.create!(
-                             budget: budget, title: loc(TITLES[:project]), budget_amount: 25_000,
+                             budget:, title: loc(TITLES[:project]), budget_amount: 25_000,
                              selected_at: Time.zone.local(2026, 4, 2, 12), address: "Školská 4, 900 00 Ukážkovo",
                              description: loc("<p>Nové detské ihrisko pri materskej škole: herné prvky, dopadový povrch a oplotenie. " \
                                               "Projekt vznikol z návrhu obyvateľa a obyvatelia ho vybrali v hlasovaní.</p>")
@@ -254,15 +254,15 @@ module CivoraDemo
 
     def ensure_result!(space, proposal, project)
       component = ensure_component!(space, :accountability, "Plnenie projektov")
-      status = Decidim::Accountability::Status.find_by(component: component, key: STATUS_KEY) ||
+      status = Decidim::Accountability::Status.find_by(component:, key: STATUS_KEY) ||
                created!(Decidim::Accountability::Status.create!(
-                          component: component, key: STATUS_KEY, name: loc("Realizované"), progress: 100,
+                          component:, key: STATUS_KEY, name: loc("Realizované"), progress: 100,
                           description: loc("Projekt je dokončený a odovzdaný do užívania.")
                         ))
 
-      result = find_by_title(Decidim::Accountability::Result.where(component: component), TITLES[:result])
+      result = find_by_title(Decidim::Accountability::Result.where(component:), TITLES[:result])
       result ||= created!(Decidim::Accountability::Result.create!(
-                            component: component, status: status, progress: 100, title: loc(TITLES[:result]),
+                            component:, status:, progress: 100, title: loc(TITLES[:result]),
                             start_date: Date.new(2026, 5, 4), end_date: Date.new(2026, 9, 18),
                             address: "Školská 4, 900 00 Ukážkovo",
                             description: loc("<p>Ihrisko pri materskej škole je dokončené. Herné prvky dodala firma vybraná " \
@@ -291,14 +291,14 @@ module CivoraDemo
 
     # Decidim's own resource link, written only while absent (see class note).
     def link_once(from, to, name)
-      return if Decidim::ResourceLink.exists?(from: from, to: to, name: name)
+      return if Decidim::ResourceLink.exists?(from:, to:, name:)
 
-      from.link_resources(from.resource_links_from.where(name: name).map(&:to) + [to], name)
+      from.link_resources(from.resource_links_from.where(name:).map(&:to) + [to], name)
       @created << "link #{from.class.name.demodulize} ##{from.id} -> #{to.class.name.demodulize} ##{to.id} (#{name})"
     end
 
     def ensure_contract!(editor)
-      contract = Decidim::ContractsSk::Contract.find_or_initialize_by(organization: organization, reference: CONTRACT_REFERENCE)
+      contract = Decidim::ContractsSk::Contract.find_or_initialize_by(organization:, reference: CONTRACT_REFERENCE)
       if contract.new_record?
         contract.assign_attributes(
           title: TITLES[:contract], state: "published", author: editor,
@@ -330,9 +330,9 @@ module CivoraDemo
     # name never grows a second party.
     def ensure_parties!(contract)
       { "object" => BUYER, "contractor" => SUPPLIER }.each do |role, attrs|
-        next if contract.parties.exists?(role: role)
+        next if contract.parties.exists?(role:)
 
-        contract.parties.create!(role: role, name: attrs[:name], ico: attrs[:ico], address: attrs[:address])
+        contract.parties.create!(role:, name: attrs[:name], ico: attrs[:ico], address: attrs[:address])
       end
     end
 

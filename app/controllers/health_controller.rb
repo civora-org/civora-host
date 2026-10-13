@@ -16,7 +16,7 @@ class HealthController < ApplicationController
 
     render json: {
       status: healthy ? "ok" : "error",
-      checks: checks
+      checks:
     }, status: healthy ? :ok : :service_unavailable
   end
 end

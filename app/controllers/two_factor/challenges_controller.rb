@@ -13,7 +13,7 @@ module TwoFactor
 
     def create
       @form = code_form
-      return render(:new, status: :unprocessable_entity) unless @form.valid?
+      return render(:new, status: :unprocessable_content) unless @form.valid?
 
       result = verify(@form.code)
       return verification_failed(@form, result, :new) unless result == :ok

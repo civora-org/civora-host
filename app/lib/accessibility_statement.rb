@@ -46,7 +46,7 @@ class AccessibilityStatement
     page.content = LOCALES.index_with { |locale| content(locale) }
     page.allow_public_access = true
     page.save!
-    Result.new(page: page, created: created, contact_email: @contact_email)
+    Result.new(page:, created:, contact_email: @contact_email)
   end
 
   def content(locale)
