@@ -97,7 +97,7 @@ echo "==> 4/6 Start app and smoke check"
 $DC up -d --no-build app
 code=""
 for i in $(seq 1 45); do
-  code="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/contracts" || true)"
+  code="$(curl -sL -o /dev/null -w '%{http_code}' "http://localhost:$PORT/contracts" || true)"
   [ "$code" = "200" ] && break
   sleep 2
 done

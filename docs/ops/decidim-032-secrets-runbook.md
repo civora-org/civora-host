@@ -138,7 +138,7 @@ Run after step 7, in the order shown. Nothing here prints a secret.
 ```bash
 # 5.1 The app serves and reports healthy.
 curl -fsS http://localhost:3000/up
-curl -fsS -o /dev/null -w '%{http_code}\n' http://localhost:3000/contracts      # expect 200
+curl -fsSL -o /dev/null -w '%{http_code}\n' http://localhost:3000/contracts      # expect 200 (follows the 301 to /<locale>/contracts)
 
 # 5.2 Migrations are current and no pending upgrade work remains.
 docker compose exec app ./bin/rails db:migrate:status | grep -c '^\s*down' || true   # expect 0

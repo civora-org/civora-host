@@ -88,7 +88,7 @@ cp .env.example .env
 # leave GITHUB_TOKEN empty unless you build a private fork
 
 docker compose up -d --build
-curl -fsS http://localhost:3000/contracts   # expect 200
+curl -fsSL http://localhost:3000/contracts  # expect 200 (-L: /contracts redirects to /<locale>/contracts)
 ```
 
 A GitHub token is passed as a BuildKit secret mount, never as a build argument, so it does not appear in the image history or layers.

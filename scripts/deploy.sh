@@ -50,7 +50,7 @@ if [ -x scripts/smoke_test.sh ]; then
     scripts/smoke_test.sh --keep-up
 else
   for i in $(seq 1 30); do
-    code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/contracts || true)"
+    code="$(curl -sL -o /dev/null -w '%{http_code}' http://localhost:3000/contracts || true)"
     [ "$code" = "200" ] && break
     sleep 2
   done
@@ -59,7 +59,7 @@ fi
 
 echo "==> 5/5 Monitoring review"
 # Deep health: unlike the smoke test, /healthz verifies database AND Redis.
-code="$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/healthz || true)"
+code="$(curl -sL -o /dev/null -w '%{http_code}' http://localhost:3000/healthz || true)"
 if [ "$code" != "200" ]; then
   echo "Deep health check failed (/healthz -> ${code:-no response}) — aborting deploy"
   exit 1

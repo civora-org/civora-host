@@ -155,7 +155,8 @@ expect() { # URL EXPECTED_CODE [curl args...]
   die "$url returned '${got:-no response}', expected $want. Check DNS (A record) and: docker compose logs caddy app"
 }
 expect "https://$SITE/up" 200
-expect "https://$SITE/contracts" 200
+# /contracts answers 301 to /<locale>/contracts since Decidim 0.32; follow it.
+expect "https://$SITE/contracts" 200 -L
 got="$(code_of "http://$SITE/")"
 case "$got" in 301 | 302 | 307 | 308) echo "    $got http://$SITE/ redirects to https" ;; *) die "http://$SITE/ returned $got, expected a redirect" ;; esac
 curl -fsS --max-time 15 "https://$SITE/robots.txt" | grep -q '^Disallow: /$' || die "robots.txt does not disallow crawling"
