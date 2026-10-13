@@ -5,10 +5,15 @@ if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
   export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
 fi
 
-# If running the rails server then create/migrate the database and load
-# idempotent seeds (minimal organization required to serve engine pages).
+# If running the rails server then create/migrate the database, run the data
+# migrations and load idempotent seeds (minimal organization required to serve
+# engine pages). The data migrations are part of the boot on purpose: Decidim
+# 0.32's schema migrations add access_mode with default "open", and only the data
+# migrations (20260111190000 processes, 20260111185230 assemblies) copy
+# private_space / is_transparent into it. Serving between the two steps would
+# show private spaces to the public.
 if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
-  ./bin/rails db:prepare db:seed
+  ./bin/rails db:prepare data:migrate db:seed
 fi
 
 exec "${@}"
