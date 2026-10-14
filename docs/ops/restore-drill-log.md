@@ -6,6 +6,8 @@ The two oldest rows predate civora-org/civora-platform#196. Those drills booted 
 
 **Validation of the #196 change (not a real-backup drill).** On 2026-10-12 the changed script was run end to end against a throwaway backup, built from a throwaway database on its own compose project (one fictional admin with a TOTP credential and one authorization; no real data, no production key). Right key: PASS, `decrypted two_factor_credentials=1 authorizations=1`, exit 0. Wrong key (same backup): FAIL, `could not decrypt two_factor_credentials=1 authorizations=1`, exit 1, although HTTP 200 and the row counts still matched. These runs are not in the table because they did not exercise a real backup.
 
+**First real-backup drill with the backup's own key (civora-org/civora-platform#187).** On 2026-10-14 the drill restored a backup of the local demo stack, taken just before its Decidim 0.31.7 to 0.32.1 upgrade (3 organizations, 7 users, 2 enrolled admins). The app was booted from the 0.32.1 image (`civora-host:latest`) with the key taken from that stack's own environment. The restored 0.31 schema was migrated forward by the entrypoint (`db:prepare data:migrate db:seed`), and the two TOTP seeds, written under the 0.31 key derivation, decrypted: `decrypted two_factor_credentials=2`. The backup had no Decidim authorizations, so only TOTP seeds were exercised. This row replaces the two random-key rows above as evidence that a restore keeps admins able to sign in.
+
 ## Drills
 
 New rows are appended below by the script; keep this table last.
@@ -14,3 +16,4 @@ New rows are appended below by the script; keep this table last.
 |---|---|---|---|---|---|---|
 | 2026-09-02T20:47:07Z | 18s | 20260902T204656Z | f0735a3bb432 | 200 | not checked | PASS (random key, see above) |
 | 2026-10-03T08:50:12Z | 21s | 20261003T085011Z | 4b24a1e1cae2 | 200 | not checked | PASS (random key, see above) |
+| 2026-10-14T17:48:49Z | 23s | 20261014T173952Z | 2baba3dc107e | 200 | decrypted | PASS |
