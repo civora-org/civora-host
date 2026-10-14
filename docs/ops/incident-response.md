@@ -140,7 +140,7 @@ The trail covers contract actions only. Sign-ins, account changes and requests a
 - **Alerts reach one person.** Telegram and e-mail receivers are both owned by the maintainer ([observability.md](observability.md#alerts)); there is no escalation path.
 - **Backups are not yet encrypted or replicated offsite** ([restore-runbook.md](restore-runbook.md#scheduled-operation)). A stolen host or backup copy is therefore a class A incident with full content exposure. Closing this is the single biggest breach-impact reduction available.
 - **The DPA template and this stack differ on backups.** The template's annex promises daily encrypted backups with 30-day retention stored separately from production; the stack runs 7 daily / 4 weekly / 6 monthly, unencrypted, on the host. Align one or the other before signing (tracked in the notes for civora-org/civora-platform#136).
-- **No TLS terminator yet** (`DECIDIM_FORCE_SSL=0`, README *Current limitations*): until the pilot reverse proxy is in place, traffic is not encrypted in transit.
+- **TLS is an overlay, not the baseline:** without `compose.tls.yml` (`DECIDIM_FORCE_SSL=0`, plain HTTP on port 3000) traffic is not encrypted in transit. A pilot stack must run the overlay ([tls.md](tls.md)); a stack found without it is an incident in itself.
 - **Auth-level events** (sign-in failures, account takeovers) have no dedicated alert.
 
 ## Related documents

@@ -47,7 +47,7 @@ Overlays are selected with `COMPOSE_FILE` in `.env`, or with `-f`:
 | File | Purpose |
 |---|---|
 | `compose.dev.yml` | Bind-mount development loop: `docker compose -f compose.yaml -f compose.dev.yml up` |
-| `compose.tls.yml` | Caddy in front of the app with automatic Let's Encrypt certificates. Requires `SITE_ADDRESS` and `ACME_EMAIL` |
+| `compose.tls.yml` | Caddy in front of the app with automatic Let's Encrypt certificates, `DECIDIM_FORCE_SSL=1`, HSTS. Requires `SITE_ADDRESS` and `ACME_EMAIL` ([`tls.md`](docs/ops/tls.md)) |
 | `compose.observability.yml` | Self-hosted error tracking (GlitchTip), metrics (Prometheus), alerting (Alertmanager) and blackbox probes. See [`docs/ops/observability.md`](docs/ops/observability.md) |
 | `compose.demo.yml` | Public demo overlay (`DEMO_MODE=1`, no CRZ, mail written to files). Used with `compose.tls.yml` |
 | `compose.drill.yml` | Throwaway overlay for `scripts/restore_drill.sh` |
@@ -119,7 +119,7 @@ Copy `.env.example` to `.env`. Never commit `.env`. The full variable inventory 
 | `ALERT_*` | with the observability overlay | Alert delivery: Telegram for critical and high alerts, e-mail for all |
 | `SITE_ADDRESS`, `ACME_EMAIL` | with `compose.tls.yml` | Public host name and Let's Encrypt contact |
 
-One Compose setting is deliberate for now: `DECIDIM_FORCE_SSL: "0"` in `compose.yaml`, because the base stack has no TLS terminator. Remove it once a reverse proxy terminates HTTPS, or use `compose.tls.yml`.
+`compose.yaml` keeps `DECIDIM_FORCE_SSL: "0"` and publishes plain-HTTP port 3000 for local use. Anything public adds `compose.tls.yml`, which puts Caddy in front, forces HTTPS, sends HSTS and unpublishes port 3000 ([`docs/ops/tls.md`](docs/ops/tls.md)).
 
 ## Working on the engine alongside this app
 
@@ -180,7 +180,7 @@ bin/rails "civora:onboard:verify[<organization_id>]"
 
 After onboarding, the pilot checklist in short:
 
-1. Give the stack its own host name and HTTPS, then remove `DECIDIM_FORCE_SSL: "0"`.
+1. Give the stack its own host name and HTTPS: DNS, then `compose.tls.yml` with `SITE_ADDRESS`, `ACME_EMAIL` and a matching `DECIDIM_ORG_HOST` ([`docs/ops/tls.md`](docs/ops/tls.md)).
 2. Create a fresh database on the pilot host. A pilot is never a copy of the demo database.
 3. Create the system admin, then set the default locale to `sk` and the organisation's logo and colours in `/system`.
 4. Invite the municipality's admins. Each one enrols a second factor before using the admin. Check with `bin/rails two_factor:status`.
@@ -224,7 +224,8 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 | [`docs/ops/secrets.md`](docs/ops/secrets.md) | Secrets policy, inventory, gitleaks guardrails, rotation |
 | [`docs/ops/environments.md`](docs/ops/environments.md) | Development, test, staging and production definitions. Staging is defined but not provisioned |
 | [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) | Scripted municipality onboarding |
-| [`docs/ops/demo-server.md`](docs/ops/demo-server.md) | Public demo server: provisioning, deploy, TLS, nightly reset, teardown |
+| [`docs/ops/demo-server.md`](docs/ops/demo-server.md) | Public demo server: provisioning, deploy, nightly reset, teardown |
+| [`docs/ops/tls.md`](docs/ops/tls.md) | TLS terminator (Caddy), forced HTTPS, HSTS, forwarded headers, local rehearsal |
 | [`docs/ops/demo-proposal-to-contract.md`](docs/ops/demo-proposal-to-contract.md) | Demo seed for a proposal, budget project, result and linked contract |
 | [`docs/ops/crz-sync.md`](docs/ops/crz-sync.md) | Nightly CRZ sync scheduler |
 | [`docs/ops/two-factor.md`](docs/ops/two-factor.md) | Admin TOTP: who must enrol, sign-in flow, lockout, operator reset |

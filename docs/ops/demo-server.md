@@ -99,21 +99,9 @@ CRON
 
 ## TLS terminator (also for production)
 
-`compose.tls.yml` is the reusable part and covers [civora-platform#168](https://github.com/civora-org/civora-platform/issues/168) for any single-host stack, production included:
+`compose.tls.yml` (Caddy, automatic Let's Encrypt certificates, `DECIDIM_FORCE_SSL=1`, HSTS) is the reusable part and covers [civora-platform#168](https://github.com/civora-org/civora-platform/issues/168) for any single-host stack, production included. How it works, the variables, the acceptance checks and a local rehearsal with Caddy's internal CA are in [tls.md](tls.md).
 
-```bash
-# .env: SITE_ADDRESS=<host>  ACME_EMAIL=<contact>  (DNS A record in place, 80/443 open)
-docker compose -f compose.yaml -f compose.tls.yml up -d      # or COMPOSE_FILE=... in .env
-```
-
-- Caddy (`deploy/caddy/Caddyfile`) gets and renews Let's Encrypt certificates, redirects HTTP to HTTPS and forwards `X-Forwarded-Proto/-For/-Host`. Certificates live in the `caddy-data` volume: keep it, or Let's Encrypt rate limits bite on rebuilds.
-- `DECIDIM_FORCE_SSL=1`: Rails redirects any plain request, sends HSTS and secure cookies, and Decidim builds https links in mail and feeds.
-- The app's port 3000 mapping is removed (`ports: !reset []`). Docker publishes ports around UFW, so the base mapping would expose plain HTTP.
-- The in-container healthcheck sends `X-Forwarded-Proto: https`, because with `force_ssl` a plain probe would only see a redirect.
-- Per-environment extras go in `deploy/caddy/*.caddy` snippets mounted to `/etc/caddy/site.d/` (the demo overlay mounts `demo.caddy`).
-- Production adds its own overlay for backups and observability on top; this overlay does not change them. Before a pilot also see README "Pilot readiness checklist" (SMTP, backups).
-
-`compose.demo.yml` adds `DEMO_MODE=1`, the memory limits, the disabled CRZ scheduler (compose profile `crz-sync`) and the noindex snippet.
+`compose.demo.yml` adds `DEMO_MODE=1`, the memory limits, the disabled CRZ scheduler (compose profile `crz-sync`) and the noindex snippet (`deploy/caddy/demo.caddy`, mounted to `/etc/caddy/site.d/`).
 
 ## Operating it
 

@@ -33,7 +33,9 @@ if ! grep -q '^COMPOSE_FILE=' .env 2>/dev/null; then
   export COMPOSE_FILE
 fi
 
-BASE_URL="${BASE_URL:-http://localhost:3000}"
+# shellcheck source=lib/stack_url.sh
+. scripts/lib/stack_url.sh
+BASE_URL="$(stack_base_url)"
 
 cleanup() {
   if [ "$KEEP_UP" = 1 ]; then
@@ -61,7 +63,14 @@ for i in $(seq 1 60); do
 done
 echo "    healthy"
 
-code="$(curl -sSL -o /dev/null -w '%{http_code}' "$BASE_URL/contracts")"
+# Retry: behind the TLS terminator the first requests can race the certificate
+# issuance (Let's Encrypt takes up to a minute on a fresh domain).
+code=""
+for _ in $(seq 1 30); do
+  code="$(stack_curl -sL -o /dev/null -w '%{http_code}' "$BASE_URL/contracts" || true)"
+  [ "$code" = "200" ] && break
+  sleep 2
+done
 echo "==> GET /contracts (following the locale redirect) -> $code"
 [ "$code" = "200" ] || { echo "FAIL: expected 200"; exit 1; }
 
