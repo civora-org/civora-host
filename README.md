@@ -185,7 +185,7 @@ After onboarding, the pilot checklist in short:
 3. Create the system admin, then set the default locale to `sk` and the organisation's logo and colours in `/system`.
 4. Invite the municipality's admins. Each one enrols a second factor before using the admin. Check with `bin/rails two_factor:status`.
 5. Make sure the pilot has at least two people with engine roles. The person who submits a contract cannot approve, return or reject it. A single-person municipality must opt out explicitly with `Decidim::ContractsSk.allow_self_review = true` in `config/initializers/contracts_sk.rb`. Self-reviews are then audited.
-6. Schedule the CRZ sync, the search-alert digest (`decidim_contracts_sk:subscriptions:deliver`, daily) and the backups, and log one restore drill.
+6. Schedule the CRZ sync, the search-alert digest (`decidim_contracts_sk:subscriptions:deliver`, daily) and the backups with `BACKUP_STRICT=1` (age key pair generated and stored, bucket at another provider, `PUSHGATEWAY_URL` set; [`restore-runbook.md`](docs/ops/restore-runbook.md)), and log one restore drill from the off-site copy on a second machine.
 7. Walk the demo test plan on the pilot stack with `MANUAL-2026-` records, then archive them.
 
 ## Demo and QA
@@ -232,7 +232,7 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 | [`docs/ops/participation-link.md`](docs/ops/participation-link.md) | Contract links to results and projects |
 | [`docs/ops/participation-navigation.md`](docs/ops/participation-navigation.md) | Header link, hero button and the homepage processes block (`civora:home:participation`) |
 | [`docs/ops/accessibility-statement.md`](docs/ops/accessibility-statement.md) | Accessibility statement and its publishing task |
-| [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) | Backup and restore procedures, deploy gate, scheduled operation |
+| [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) | Encrypted off-site backups, retention, restore, deploy gate, DPA mapping, local rehearsal |
 | [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md) | Log of executed restore drills |
 | [`docs/ops/decidim-032-secrets-runbook.md`](docs/ops/decidim-032-secrets-runbook.md) | Decidim 0.32 secret-key and encryption upgrade: backups first, upgrade sequence, rollback, restore drill (not yet run) |
 | [`docs/ops/log-policy.md`](docs/ops/log-policy.md) | Where logs live, rotation, levels, privacy rules |
@@ -244,10 +244,11 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 
 | Script | Purpose |
 |---|---|
-| `scripts/backup.sh` | `pg_dump`, attachments archive, manifest and checksums in `backups/`, plus the dead-man ping |
-| `scripts/backup_prune.sh` | Retention: 7 daily, 4 weekly and 6 monthly backups |
+| `scripts/backup.sh` | `pg_dump` and attachments archive encrypted with `age`, manifest and checksums in `backups/`, the dead-man ping, then the off-site copy |
+| `scripts/backup_offsite.sh`, `scripts/backup_fetch.sh`, `scripts/backup_decrypt.sh` | Upload and verify a backup in an S3-compatible bucket; download one; decrypt one on the operator's machine |
+| `scripts/backup_prune.sh` | Retention: 30 days of daily backups, local and off-site |
 | `scripts/deploy.sh` | Backup-gated deploy: backup, verify, up, smoke test, monitoring review. Deploys must use it |
-| `scripts/restore_drill.sh` | Restores into an isolated stack, verifies and logs the result |
+| `scripts/restore_drill.sh` | Restores (`--offsite`: from the bucket, decrypting with the operator's age key) into an isolated stack, verifies and logs the result |
 | `scripts/smoke_test.sh` | Clean-state build and smoke test |
 | `scripts/install-hooks.sh` | Installs the gitleaks pre-commit hook |
 | `scripts/crz_sync_run.sh`, `scripts/crz_sync_scheduler.sh` | Run one CRZ sync pass, and the scheduler loop used by the `scheduler` service |
@@ -266,7 +267,7 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 
 ### Backups and secrets
 
-Backups run from `scripts/backup.sh` and are pruned by `scripts/backup_prune.sh`. Restore procedures and drills are in [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) and [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md). Secrets come from environment variables only. Rails credentials are retired.
+Backups run from `scripts/backup.sh`: encrypted with `age` (the private key is never on the server), copied to an S3-compatible bucket at another provider, kept 30 days and pruned by `scripts/backup_prune.sh`; a missed backup or a missed off-site copy raises an alert. Restore procedures, key custody and drills are in [`docs/ops/restore-runbook.md`](docs/ops/restore-runbook.md) and [`docs/ops/restore-drill-log.md`](docs/ops/restore-drill-log.md); key custody is in [`docs/ops/secrets.md`](docs/ops/secrets.md). Secrets come from environment variables only. Rails credentials are retired.
 
 ## Known limitations
 

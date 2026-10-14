@@ -1,6 +1,6 @@
 # Observability
 
-How the self-hosted observability stack fits together (civora-org/civora-platform#51): error tracking, metrics, alerting, and the backup dead-man switch. Nothing leaves the machine — GlitchTip replaces Sentry's SaaS, Prometheus + Alertmanager replace a hosted metrics/alerting product.
+How the self-hosted observability stack fits together (civora-org/civora-platform#51): error tracking, metrics, alerting, and the backup dead-man switches (local and off-site). Nothing leaves the machine — GlitchTip replaces Sentry's SaaS, Prometheus + Alertmanager replace a hosted metrics/alerting product.
 
 ## Services and ports
 
@@ -24,7 +24,7 @@ Omitting the overlay (no `COMPOSE_FILE` in `.env`) runs the base stack only; `sc
 | `alertmanager`        | `prom/alertmanager:v0.28.1`    | 9093                  | Routes firing alerts to Telegram (urgent) and e-mail (all) |
 | `blackbox-exporter`   | `prom/blackbox-exporter:v0.27.0` | —                   | Synthetic HTTP probes of `/up` and `/healthz` |
 | `prometheus-exporter` | `civora-host:latest`           | —                     | Collector the Rails middleware pushes metrics to (9394, internal) |
-| `pushgateway`         | `prom/pushgateway:v1.11.0`     | 9091                  | Backup dead-man ping target (host cron pushes from outside the network) |
+| `pushgateway`         | `prom/pushgateway:v1.11.0`     | 9091                  | Backup dead-man ping target, local and off-site (host cron pushes from outside the network) |
 
 All published ports are bound to `127.0.0.1` — sufficient for local testing and for a future same-host reverse proxy; nothing is exposed to other machines.
 
@@ -38,7 +38,7 @@ Add to `.env` (never commit it; template in `.env.example`):
 | `GLITCHTIP_DB_PASSWORD` | yes      | Password for the GlitchTip Postgres database (`openssl rand -hex 16`) |
 | `GLITCHTIP_DOMAIN`      | no       | Public base URL of GlitchTip (default `http://localhost:8080`) |
 | `SENTRY_DSN`            | no       | App error reporting; a GlitchTip project DSN. Sentry is disabled when unset |
-| `PUSHGATEWAY_URL`      | no       | Backup dead-man ping target, e.g. `http://127.0.0.1:9091` (used by `scripts/backup.sh`, which also reads it from `.env` directly — so host cron picks it up without sourcing) |
+| `PUSHGATEWAY_URL`      | no       | Backup dead-man ping target, e.g. `http://127.0.0.1:9091` (used by `scripts/backup.sh` and `scripts/backup_offsite.sh`, which also read it from `.env` directly — so host cron picks it up without sourcing). **Required on a pilot stack**: without it both backup alerts fire by design |
 | `ALERT_TELEGRAM_BOT_TOKEN` | no   | Telegram bot token (from `@BotFather`) for urgent alerts |
 | `ALERT_TELEGRAM_CHAT_ID`   | no   | Numeric chat id of the maintainer's chat with the bot |
 | `ALERT_EMAIL_TO`           | no   | Mailbox that receives every alert |
@@ -61,6 +61,7 @@ Rails app ──(PrometheusExporter::Middleware, per-request push)──▶ prom
 blackbox-exporter ◀──(scrape /probe)── Prometheus ◀──(scrape /metrics)── prometheus-exporter:9394
 blackbox-exporter ──(HTTP GET http://app:3000/up and /healthz)──▶ Rails app
 scripts/backup.sh ──(push civora_backup_last_success_unixtime)──▶ pushgateway:9091
+scripts/backup_offsite.sh ──(push civora_backup_offsite_last_success_unixtime, only after a verified upload)──▶ pushgateway:9091
 scheduler service ──(scripts/crz_sync_run.sh pushes civora_crz_sync_*{organization=<id>})──▶ pushgateway:9091
 ```
 
@@ -79,6 +80,7 @@ Rules in `observability/prometheus/rules.yml` implement the CI/CD plan threshold
 | `AppUptimeHigh`          | high     | uptime < 99% over 1h |
 | `HttpErrorRateHigh`      | high     | 5xx rate > 1% over 1h |
 | `BackupStale`            | high     | backup ping stale > 26h or never pushed (cron: nightly 03:15 `Europe/Bratislava`) |
+| `OffsiteBackupStale`     | high     | no **verified off-site** backup for > 26h, or none ever pushed. Fires while the local `BackupStale` stays quiet when only the upload is failing; and fires permanently on a stack where off-site is not configured (by design: a pilot stack must have it) |
 | `CrzSyncStale`           | high     | no successful CRZ sync for an organization for > 54h (two missed nights plus slack), or none ever pushed (scheduler runs nightly 03:30 `Europe/Bratislava`) |
 | `CrzSyncNeverSucceeded`  | warning  | an organization's sync is failing (`last_run_success == 0`) and has never succeeded, for 1h |
 | `DeepHealthCheckFailing` | warning  | `/healthz` probe failing (db/redis down while `/up` may still pass) |
@@ -107,7 +109,9 @@ Run the stack, wait for Prometheus to pick up targets (`http://127.0.0.1:9090/ta
    printf 'civora_backup_last_success_unixtime 1000000000\n' | \
      curl --data-binary @- http://127.0.0.1:9091/metrics/job/civora-backup
    ```
-   `BackupStale` fires (~10m, the rule's `for`). The `absent()` branch can be tested on a fresh pushgateway (no push yet). Then verify the real path: `PUSHGATEWAY_URL=http://127.0.0.1:9091 scripts/backup.sh` and confirm the metric at `http://127.0.0.1:9091` shows the current time.
+   `BackupStale` fires (~10m, the rule's `for`). The `absent()` branch can be tested on a fresh pushgateway (no push yet). Then verify the real path: `PUSHGATEWAY_URL=http://127.0.0.1:9091 scripts/backup.sh` and confirm the metric at `http://127.0.0.1:9091` shows the current time. The off-site twin is `civora_backup_offsite_last_success_unixtime` (`OffsiteBackupStale`): push an old value the same way to see it go pending, or point `BACKUP_OFFSITE_BUCKET` at a bucket that does not exist, run `scripts/backup.sh` and confirm it exits non-zero without moving that metric.
+
+The windows of both alerts are also unit-tested without a stack, with promtool: `docker run --rm -v "$PWD/observability/prometheus:/rules:ro" --entrypoint promtool prom/prometheus:v3.7.3 test rules /rules/rules_test.yml` (CI runs it).
 5. **Error tracking:** `docker compose exec app bin/rails runner 'Sentry.capture_message("synthetic test event (civora-org/civora-platform#51)")'` — the event appears in the GlitchTip project within seconds.
 6. **Alert delivery:** with the `ALERT_*` vars set, post a synthetic alert straight to Alertmanager — a Telegram message and an e-mail should arrive within ~30s (`group_wait`), and a "resolved" follow-up after the `endsAt` time:
    ```bash

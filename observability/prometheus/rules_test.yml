@@ -1,0 +1,73 @@
+# Unit tests for the backup dead-man alerts (civora-org/civora-platform#167).
+# The gauges hold the Unix time of the last successful run, so a series whose
+# value equals its own timestamp ("0+60x2400": one sample a minute, value =
+# elapsed seconds) models a backup that keeps succeeding, and a constant series
+# ("7200x2400") one that stopped at t=2h.
+#
+# Run with promtool, no running stack needed:
+#   docker run --rm -v "$PWD/observability/prometheus:/rules:ro" --entrypoint promtool \
+#     prom/prometheus:v3.7.3 test rules /rules/rules_test.yml
+rule_files:
+  - rules.yml
+
+evaluation_interval: 30s
+
+tests:
+  - name: both backups keep succeeding, nothing fires
+    interval: 1m
+    input_series:
+      - series: 'civora_backup_last_success_unixtime{job="civora-backup"}'
+        values: '0+60x2400'
+      - series: 'civora_backup_offsite_last_success_unixtime{job="civora-backup"}'
+        values: '0+60x2400'
+    alert_rule_test:
+      - eval_time: 30h
+        alertname: BackupStale
+        exp_alerts: []
+      - eval_time: 30h
+        alertname: OffsiteBackupStale
+        exp_alerts: []
+
+  - name: local backup fine, off-site stopped at 2h, only the off-site alert fires
+    interval: 1m
+    input_series:
+      - series: 'civora_backup_last_success_unixtime{job="civora-backup"}'
+        values: '0+60x2400'
+      - series: 'civora_backup_offsite_last_success_unixtime{job="civora-backup"}'
+        values: '7200x2400'
+    alert_rule_test:
+      # 4h in: the last off-site ping is 2h old, inside the 26h window.
+      - eval_time: 4h
+        alertname: OffsiteBackupStale
+        exp_alerts: []
+      # 34h in: 32h old, past the 26h window and the 10m hold.
+      - eval_time: 34h
+        alertname: OffsiteBackupStale
+        exp_alerts:
+          - exp_labels:
+              severity: high
+              job: civora-backup
+            exp_annotations:
+              summary: "No verified off-site backup for more than 26 hours"
+              description: "No successful off-site backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron output of scripts/backup.sh / scripts/backup_offsite.sh, the bucket credentials and the provider status."
+      - eval_time: 34h
+        alertname: BackupStale
+        exp_alerts: []
+
+  - name: local backup runs but off-site was never configured, the off-site alert fires
+    interval: 1m
+    input_series:
+      - series: 'civora_backup_last_success_unixtime{job="civora-backup"}'
+        values: '0+60x2400'
+    alert_rule_test:
+      - eval_time: 2h
+        alertname: OffsiteBackupStale
+        exp_alerts:
+          - exp_labels:
+              severity: high
+            exp_annotations:
+              summary: "No verified off-site backup for more than 26 hours"
+              description: "No successful off-site backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron output of scripts/backup.sh / scripts/backup_offsite.sh, the bucket credentials and the provider status."
+      - eval_time: 2h
+        alertname: BackupStale
+        exp_alerts: []
