@@ -82,6 +82,26 @@ groups:
           summary: "Backup has not succeeded for more than 26 hours"
           description: "No successful backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron job and scripts/backup.sh output."
 
+      # High: off-site copy dead-man switch (civora-org/civora-platform#167).
+      # scripts/backup_offsite.sh pushes
+      # civora_backup_offsite_last_success_unixtime only after the encrypted
+      # copy was uploaded AND verified against the local one. Same 26h window
+      # as BackupStale. This alert still fires when the local backup is fine:
+      # a backup that exists only on the production machine is not a backup
+      # the DPA annex promises. Without off-site configured the metric never
+      # appears and the alert fires by design (absent branch): the pilot stack
+      # must not run without it.
+      - alert: OffsiteBackupStale
+        expr: |
+          (time() - civora_backup_offsite_last_success_unixtime > 93600)
+            or absent(civora_backup_offsite_last_success_unixtime) == 1
+        for: 10m
+        labels:
+          severity: high
+        annotations:
+          summary: "No verified off-site backup for more than 26 hours"
+          description: "No successful off-site backup ping reached pushgateway within the last 26h (or none was ever pushed). Check the cron output of scripts/backup.sh / scripts/backup_offsite.sh, the bucket credentials and the provider status."
+
   - name: civora-crz-sync
     rules:
       # High: CRZ sync dead-man switch (civora-org/civora-platform#138).

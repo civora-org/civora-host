@@ -71,10 +71,29 @@ jobs:
       # which need the shared library on the runner.
       - name: Install libvips
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libvips42t64
+      # The backup script tests run the real age encrypt/decrypt round trip
+      # (test/lib/backup_scripts_test.rb); they skip when age is missing.
+      - name: Install age
+        run: sudo apt-get install -y -qq age
       - name: Prepare test database
         run: DISABLE_SPRING=1 bin/rails db:create db:schema:load
       - name: Run tests
         run: DISABLE_SPRING=1 bin/rails test
+
+  alert-rules:
+    name: promtool
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Unit tests for the backup dead-man alert windows (observability/prometheus/rules_test.yml).
+      - name: Check and test the alert rules
+        run: |
+          docker run --rm -v "$PWD/observability/prometheus:/rules:ro" --entrypoint promtool \
+            prom/prometheus:v3.7.3 check rules /rules/rules.yml
+          docker run --rm -v "$PWD/observability/prometheus:/rules:ro" --entrypoint promtool \
+            prom/prometheus:v3.7.3 test rules /rules/rules_test.yml
 
   brakeman:
     name: brakeman

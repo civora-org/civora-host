@@ -32,7 +32,7 @@ These are the targets the maintainer commits to for the pilot. The alert levels 
 | Severity | Trigger | Acknowledge | Contain / restore service | Inform municipality contact |
 |---|---|---|---|---|
 | **S1 critical** | Alert `AppUptimeCritical` or `HttpErrorRateCritical`; confirmed class A breach | 1 h (08:00-22:00 `Europe/Bratislava`), otherwise next morning | Start immediately; recover from [restore-runbook.md](restore-runbook.md) if data is lost (RPO ≤ 24 h) | Class A: **as soon as it is established that personal data is affected, and in any case within 48 h** of the maintainer becoming aware (the DPA template, art. 5(e)). Outage: after 4 h without recovery |
-| **S2 high** | Alert `AppUptimeHigh`, `HttpErrorRateHigh`, `BackupStale`, `CrzSyncStale`; suspected class A or B | Same working day | Within 1 working day | Class A or B: as for S1. Others: in the next regular report |
+| **S2 high** | Alert `AppUptimeHigh`, `HttpErrorRateHigh`, `BackupStale`, `OffsiteBackupStale`, `CrzSyncStale`; suspected class A or B | Same working day | Within 1 working day | Class A or B: as for S1. Others: in the next regular report |
 | **S3 warning** | Alert `DeepHealthCheckFailing`, `CrzSyncNeverSucceeded` | Next working day | Within the week | Not needed unless it recurs |
 
 Alertmanager sends critical and high alerts to Telegram and e-mail, warnings to e-mail only, and repeats an unresolved alert every 4 h (`observability/alertmanager/alertmanager.yml`). The hours above are a staffing statement, not a monitoring claim: the stack alerts around the clock, the maintainer answers inside them.
@@ -138,8 +138,8 @@ The trail covers contract actions only. Sign-ins, account changes and requests a
 
 - **Single maintainer.** No backup maintainer exists, so the response targets assume availability. Name a second person before more than one municipality is live.
 - **Alerts reach one person.** Telegram and e-mail receivers are both owned by the maintainer ([observability.md](observability.md#alerts)); there is no escalation path.
-- **Backups are not yet encrypted or replicated offsite** ([restore-runbook.md](restore-runbook.md#scheduled-operation)). A stolen host or backup copy is therefore a class A incident with full content exposure. Closing this is the single biggest breach-impact reduction available.
-- **The DPA template and this stack differ on backups.** The template's annex promises daily encrypted backups with 30-day retention stored separately from production; the stack runs 7 daily / 4 weekly / 6 monthly, unencrypted, on the host. Align one or the other before signing (tracked in the notes for civora-org/civora-platform#136).
+- **Backup encryption is a setting, and a key custody problem.** Backups are encrypted with `age` and copied off-site only when `BACKUP_AGE_RECIPIENTS` and `BACKUP_OFFSITE_BUCKET` are set; `BACKUP_STRICT=1` makes that mandatory ([restore-runbook.md](restore-runbook.md#configuration)). A stack found without it holds plaintext on the host. The private key is held by the one maintainer and one offline escrow copy ([secrets.md](secrets.md#backup-encryption-key-age)); losing both makes the backups unreadable.
+- **The DPA annex and the stack now match on backups** (daily, encrypted, off-site, 30 days, quarterly drill; the mapping is in [restore-runbook.md](restore-runbook.md#what-the-dpa-promises-and-what-implements-it)), provided the pilot stack actually runs with `BACKUP_STRICT=1`. Until a drill from the real provider on a second machine is logged, say "verified on a rehearsal stack", not "verified".
 - **TLS is an overlay, not the baseline:** without `compose.tls.yml` (`DECIDIM_FORCE_SSL=0`, plain HTTP on port 3000) traffic is not encrypted in transit. A pilot stack must run the overlay ([tls.md](tls.md)); a stack found without it is an incident in itself.
 - **Auth-level events** (sign-in failures, account takeovers) have no dedicated alert.
 

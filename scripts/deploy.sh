@@ -36,7 +36,14 @@ echo "Backup at: $LATEST"
 
 echo "==> 2/5 Verify backup artifacts"
 (cd "$LATEST" && shasum -a 256 -c sha256.txt)
-for f in db.dump storage.tar.gz manifest.json; do
+# Encrypted backups (civora-org/civora-platform#167) store db.dump.age and
+# storage.tar.gz.age; plaintext ones db.dump and storage.tar.gz.
+if [ -s "$LATEST/db.dump.age" ]; then
+  ARTIFACTS="db.dump.age storage.tar.gz.age manifest.json"
+else
+  ARTIFACTS="db.dump storage.tar.gz manifest.json"
+fi
+for f in $ARTIFACTS; do
   [ -s "$LATEST/$f" ] || { echo "MISSING: $f — aborting deploy"; exit 1; }
 done
 

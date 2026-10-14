@@ -20,6 +20,7 @@ class AlertRulesTest < ActiveSupport::TestCase
     "HttpErrorRateCritical" => { "severity" => "critical", "for" => "2m" },
     "HttpErrorRateHigh" => { "severity" => "high", "for" => "5m" },
     "BackupStale" => { "severity" => "high", "for" => "10m" },
+    "OffsiteBackupStale" => { "severity" => "high", "for" => "10m" },
     "CrzSyncStale" => { "severity" => "high", "for" => "10m" },
     "CrzSyncNeverSucceeded" => { "severity" => "warning", "for" => "1h" }
   }.freeze
@@ -65,6 +66,16 @@ class AlertRulesTest < ActiveSupport::TestCase
     # 25h across the October DST fallback) so a successful push never trips
     # the alert, while one missed night (elapsed up to ~48h) does.
     assert_equal 26 * 60 * 60, 93_600
+  end
+
+  test "OffsiteBackupStale watches the off-site gauge with the same 26h window and an absent() branch" do
+    offsite_expr = expr("OffsiteBackupStale")
+    assert_includes offsite_expr, "time() - civora_backup_offsite_last_success_unixtime > 93600"
+    assert_includes offsite_expr, "absent(civora_backup_offsite_last_success_unixtime) == 1"
+    # The metric name is pushed by scripts/backup_offsite.sh; renaming one
+    # side silently disarms the alert.
+    assert_includes Rails.root.join("scripts/backup_offsite.sh").read,
+                    "civora_backup_offsite_last_success_unixtime"
   end
 
   test "CrzSyncStale is a 54h dead-man window with an absent() branch" do
