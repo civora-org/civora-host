@@ -12,14 +12,14 @@ The app runs in three defined environments. Staging is **defined but deliberatel
 | Secrets source | `.env` (local only) | CI env / service defaults | reserved: `.env.staging` | `.env` via compose |
 | Mail | letter_opener (Decidim default) | test adapter | — | `SMTP_*` (**unconfigured — see secrets.md**) |
 | Storage | `./storage` (bind mount) | tmp | — | `app-storage` named volume, `STORAGE_PROVIDER=local` |
-| Force SSL | n/a | n/a | — | `DECIDIM_FORCE_SSL=0` in the base file; the `compose.tls.yml` overlay (Caddy) sets it to 1 |
+| Force SSL | n/a | n/a | — | `DECIDIM_FORCE_SSL=0` in the base file (plain HTTP on port 3000, local only); production **must** add `compose.tls.yml` (Caddy, `DECIDIM_FORCE_SSL=1`, HSTS), see [tls.md](tls.md) |
 
 ## Parity notes
 
 - **Same image everywhere it runs containerized** — dev overlay (`compose.dev.yml`) reuses the production `Dockerfile`/`compose.yaml`; only mounts, ports, and auth differ.
 - **Same Postgres major** — production runs Postgres 17; the CI service was aligned to 17 so tests exercise the same engine. (Keep this true if either is bumped.)
 - **Secrets never shared across environments** — each environment gets its own `SECRET_KEY_BASE`, DB credentials, and (later) SMTP credentials.
-- `DECIDIM_FORCE_SSL=0` and boot-time `db:prepare` are documented temporary divergences (see README "Current limitations").
+- `DECIDIM_FORCE_SSL=0` in the base file is a local-only default: production adds the TLS overlay ([tls.md](tls.md)). Boot-time `db:prepare` is a documented temporary divergence (see README "Current limitations").
 
 ## Config surface per environment
 
