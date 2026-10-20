@@ -105,6 +105,7 @@ Copy `.env.example` to `.env`. Never commit `.env`. The full variable inventory 
 
 | Variable | Required | Purpose |
 |---|---|---|
+| `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY`, `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` | yes (production refuses to boot without them) | Encrypt the personal data of contract templates. Generate with `bin/rails db:encryption:init`, keep with `SECRET_KEY_BASE`, never replace (see [secrets](docs/ops/secrets.md#active-record-encryption-keys)) |
 | `SECRET_KEY_BASE` | yes | Rails secret. Rotating it invalidates encrypted data, so every TOTP enrolment must be reset with `two_factor:reset_all` (see [two-factor](docs/ops/two-factor.md)) |
 | `POSTGRES_PASSWORD` | yes | Password of the `postgres` user in the Compose database |
 | `DECIDIM_ORG_HOST` | before the first pilot boot | Host name the seeded organisation answers on (default `localhost`) |
@@ -221,6 +222,7 @@ Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participat
 
 | Document | Covers |
 |---|---|
+| [`docs/ops/libreoffice-converter.md`](docs/ops/libreoffice-converter.md) | LibreOffice in the image: what it does, timeout, isolation, no network |
 | [`docs/ops/secrets.md`](docs/ops/secrets.md) | Secrets policy, inventory, gitleaks guardrails, rotation |
 | [`docs/ops/environments.md`](docs/ops/environments.md) | Development, test, staging and production definitions. Staging is defined but not provisioned |
 | [`docs/ops/onboard-municipality.md`](docs/ops/onboard-municipality.md) | Scripted municipality onboarding |

@@ -14,8 +14,12 @@ module RestoreDrill
   #     raw column: Decidim::RecordEncryptor swallows InvalidMessage in the
   #     model getter (legacy-plaintext fallback), so the getter would "succeed"
   #     with a wrong key.
+  #   * contract_template_entries (civora-org/civora-platform#211): the
+  #     personal_values of an entry decrypt with the backup's Active Record
+  #     Encryption keys. Skipped when the installed engine predates the model.
   class EncryptionCheck
     SAMPLE = 50
+    TEMPLATE_ENTRY_MODEL = "Decidim::ContractsSk::ContractTemplateEntry"
 
     Result = Struct.new(:status, :verified, :failed, keyword_init: true) do
       # :ok     at least one encrypted row decrypted and none failed
@@ -30,14 +34,20 @@ module RestoreDrill
         case status
         when :ok then "encryption check OK: decrypted #{counts.call(verified)}"
         when :failed then "encryption check FAILED: could not decrypt #{counts.call(failed)} (verified: #{counts.call(verified)}). " \
-                          "The app is not running with the backup's SECRET_KEY_BASE."
+                          "The app is not running with the backup's SECRET_KEY_BASE and Active Record Encryption keys."
         else "encryption check WARNING: no encrypted rows to verify (nothing was proven)"
         end
       end
     end
 
-    def self.call
-      new.call
+    def self.call(**)
+      new(**).call
+    end
+
+    # entry_model: the contract template entry class; resolved lazily so a host
+    # on an engine release without templates simply has nothing to check.
+    def initialize(entry_model: TEMPLATE_ENTRY_MODEL.safe_constantize)
+      @entry_model = entry_model
     end
 
     def call
@@ -45,6 +55,7 @@ module RestoreDrill
       failed = Hash.new(0)
       credentials(verified, failed)
       authorizations(verified, failed)
+      template_entries(verified, failed)
 
       status = if failed.any? then :failed
                elsif verified.empty? then :none
@@ -74,6 +85,21 @@ module RestoreDrill
         tally(decrypted, "authorizations", verified, failed)
       rescue StandardError
         tally(false, "authorizations", verified, failed)
+      end
+    end
+
+    # personal_values is read through the model, which raises on a key that does
+    # not match (there is no plaintext fallback: support_unencrypted_data is
+    # off). Rows with nothing stored prove nothing and are not counted.
+    def template_entries(verified, failed)
+      return unless @entry_model&.table_exists?
+
+      @entry_model.order(:id).limit(SAMPLE).each do |entry|
+        next if entry.personal_values_before_type_cast.blank?
+
+        tally(entry.personal_values.is_a?(Hash), "contract_template_entries", verified, failed)
+      rescue StandardError
+        tally(false, "contract_template_entries", verified, failed)
       end
     end
 

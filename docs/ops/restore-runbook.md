@@ -28,6 +28,7 @@ Wording to use in the annex once the pilot server runs this (replaces the "Zaved
 - `backups/<timestamp>/` present with: `db.dump.age`, `storage.tar.gz.age`, `manifest.json`, `sha256.txt` (older or unencrypted backups: `db.dump`, `storage.tar.gz` instead). Not on this machine any more? Fetch it from the off-site target first (below).
 - **The age private key** for an encrypted backup: `BACKUP_AGE_IDENTITY_FILE=/path/to/key` on the machine you restore from. Without it the backup is unreadable by design; see [secrets.md](secrets.md#backup-encryption-key-age).
 - **The backup's own `SECRET_KEY_BASE`.** `scripts/backup.sh` does not copy `.env`, and the dump holds data encrypted under that key (admin TOTP seeds, Decidim authorization metadata). Restore with a different key and the app boots, serves pages and passes row counts, but every enrolled admin is locked out at the second-factor challenge. Take the value from the secrets backup (password manager), not from the repo; if it is lost, the encrypted rows are unrecoverable and `bin/rails two_factor:reset_all REASON="secret_key_base lost"` is the only way back for admins (see [two-factor.md](two-factor.md)). Rotating the key after a suspected compromise is a separate step (see [secrets.md](secrets.md)).
+- **The backup's own Active Record Encryption keys** (`ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` and `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`, plus `ACTIVE_RECORD_ENCRYPTION_PREVIOUS_PRIMARY_KEYS` if the backup predates a rotation). The contract templates' personal data (`personal_values`) is encrypted under them, and the app **refuses to boot in production without them**. Take them from the secrets backup, in the same password-manager entry as `SECRET_KEY_BASE`. A restore with other keys boots, but the personal data is unreadable and cannot be recovered; if the keys are lost, that data is gone ([secrets.md](secrets.md#active-record-encryption-keys)).
 
 ## Verify the backup first
 
@@ -96,7 +97,7 @@ docker compose exec -T db psql -U postgres -d decidim_app_production -Atc "
 - Attachment files present: blob count in DB == files under the `app-storage` volume (`docker run --rm civora-host_app-storage:... find /dst -type f | wc -l`).
 - Freshness: `MAX(created_at)` on key tables is consistent with the backup timestamp (no post-backup data expected — that window is the accepted RPO loss).
 - Smoke: `curl -fsSL http://localhost:3000/contracts` → 200; admin sign-in works.
-- Decryption: `docker compose exec -T app ./bin/rails restore_drill:verify_encryption` decrypts a sample of TOTP seeds and authorization metadata and prints counts only (exit 0 = decrypted, 1 = could not decrypt, 3 = no encrypted rows). Exit 1 means the app is not running with the backup's `SECRET_KEY_BASE`. Do not hand the restored stack to users until it exits 0.
+- Decryption: `docker compose exec -T app ./bin/rails restore_drill:verify_encryption` decrypts a sample of TOTP seeds and authorization metadata and prints counts only (exit 0 = decrypted, 1 = could not decrypt, 3 = no encrypted rows). It also reads the `personal_values` of up to 50 contract template entries when the installed engine has them. Exit 1 means the app is not running with the backup's `SECRET_KEY_BASE` or Active Record Encryption keys. Do not hand the restored stack to users until it exits 0.
 
 ## Scheduled operation
 
@@ -141,6 +142,10 @@ Backups contain internal and personal data. Even encrypted, keep `backups/` at m
 # only you can read (mode 0600, outside the repo, deleted afterwards).
 # The age private key is a file on your machine as well.
 export DRILL_SECRET_KEY_BASE_FILE=/path/to/secret_key_base
+# The backup's Active Record Encryption keys, from the same password-manager entry (one value per file):
+export DRILL_AR_PRIMARY_KEY_FILE=/path/to/ar_primary_key
+export DRILL_AR_SALT_FILE=/path/to/ar_key_derivation_salt
+# only for a backup older than a key rotation: DRILL_AR_PREVIOUS_KEYS_FILE=/path/to/old_primary_keys (comma-separated)
 export BACKUP_AGE_IDENTITY_FILE=/path/to/age.key
 
 scripts/restore_drill.sh --offsite             # the real path: download the newest backup from the bucket, drill it
@@ -152,12 +157,12 @@ scripts/restore_drill.sh backups/<timestamp>    # a specific local one
 
 Quarterly drills use `--offsite`, from a machine that is **not** the production server: that proves the copy in the bucket, the key and the procedure rather than the server's own disk. The first drill with the real pilot data runs on a second machine (a "fresh VM") before the pilot goes live.
 
-Runs the entire runbook inside an isolated compose project (`civora-restore-drill`, never `civora-host`; the script refuses a `DRILL_PROJECT` that starts with `civora-host`; separate fresh volumes, throwaway DB password, ephemeral port, `--no-build` so it never touches the stack's image tags). The app boots with the **backup's own `SECRET_KEY_BASE`**; without one the script exits before starting anything, because a random key passes the HTTP and count checks yet cannot decrypt the backup (the failure mode of civora-org/civora-platform#196). It then:
+Runs the entire runbook inside an isolated compose project (`civora-restore-drill`, never `civora-host`; the script refuses a `DRILL_PROJECT` that starts with `civora-host`; separate fresh volumes, throwaway DB password, ephemeral port, `--no-build` so it never touches the stack's image tags). The app boots with the **backup's own `SECRET_KEY_BASE` and Active Record Encryption keys**; without them the script exits before starting anything, because a random key passes the HTTP and count checks yet cannot decrypt the backup (the failure mode of civora-org/civora-platform#196). It then:
 
 0. with `--offsite`, downloads the backup and verifies its checksums (any mismatch stops the drill);
 1. restores the dump and attachments (an encrypted backup is decrypted as a stream, so no plaintext lands on disk);
 2. smoke-checks `/contracts` for HTTP 200;
-3. runs `rake restore_drill:verify_encryption` in the app container: decrypts up to 50 TOTP credentials and 50 authorizations through Decidim's `AttributeEncryptor` (code in `app/lib/restore_drill/encryption_check.rb`, mounted from the checkout so an older image still gets it);
+3. runs `rake restore_drill:verify_encryption` in the app container: decrypts up to 50 TOTP credentials and 50 authorizations through Decidim's `AttributeEncryptor`, and up to 50 contract template entries' `personal_values` through Active Record Encryption (code in `app/lib/restore_drill/encryption_check.rb`, mounted from the checkout so an older image still gets it);
 4. compares row counts with the manifest;
 5. tears down and appends one row to [restore-drill-log.md](restore-drill-log.md).
 
@@ -165,7 +170,7 @@ Runs the entire runbook inside an isolated compose project (`civora-restore-dril
 |---|---|---|
 | PASS | 0 | HTTP 200, counts match, at least one encrypted row decrypted and none failed |
 | WARN | 2 | HTTP and counts fine, but the backup has no encrypted rows, so the key was **not** proven. Not a pass: re-run on a backup that has an enrolled admin |
-| FAIL | 1 | HTTP, counts, or decrypt failed. A decrypt failure means the wrong `SECRET_KEY_BASE` |
+| FAIL | 1 | HTTP, counts, or decrypt failed. A decrypt failure means the wrong `SECRET_KEY_BASE` or encryption keys |
 
 A drill that fails before it can write a row (wrong age key, checksum mismatch, bucket unreachable) exits non-zero and appends nothing; the terminal output is the record, and a real failure is noted in the log's narrative.
 
@@ -191,7 +196,7 @@ export BACKUP_AGE_RECIPIENTS="<public key 1> <public key 2>" BACKUP_STRICT=1 \
 RCLONE_CONFIG_OFFSITE_NO_CHECK_BUCKET=false sh -c '. scripts/lib/backup_env.sh; backup_env_load; backup_rclone mkdir offsite:$BACKUP_OFFSITE_BUCKET'
 scripts/backup.sh                                   # encrypted, uploaded, verified
 rm -rf backups                                      # nothing local: the bucket is the only copy
-DRILL_PROJECT=civora-test-bk-drill PORT=3198 DRILL_SECRET_KEY_BASE_FILE=... BACKUP_AGE_IDENTITY_FILE=... \
+DRILL_PROJECT=civora-test-bk-drill PORT=3198 DRILL_SECRET_KEY_BASE_FILE=... DRILL_AR_PRIMARY_KEY_FILE=... DRILL_AR_SALT_FILE=... BACKUP_AGE_IDENTITY_FILE=... \
   scripts/restore_drill.sh --offsite
 ```
 
