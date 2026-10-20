@@ -22,7 +22,14 @@
 # it from the secrets backup, never from the repo:
 #   DRILL_SECRET_KEY_BASE_FILE=/path/to/file   file holding just the value, or
 #   DRILL_SECRET_KEY_BASE=...                  the value in the environment
-# The value is never printed, logged or written anywhere by this script.
+# The backup's Active Record Encryption keys are REQUIRED too (civora-org/
+# civora-platform#211): contract-template personal data is encrypted under them,
+# and the app refuses to boot in production without them. Same two ways each:
+#   DRILL_AR_PRIMARY_KEY_FILE / DRILL_AR_PRIMARY_KEY
+#   DRILL_AR_SALT_FILE        / DRILL_AR_SALT
+#   DRILL_AR_PREVIOUS_KEYS_FILE / DRILL_AR_PREVIOUS_KEYS   optional, comma-separated
+#                                old primary keys, only if the backup predates a rotation
+# The values are never printed, logged or written anywhere by this script.
 #
 # Isolation: separate compose project (civora-restore-drill), fresh volumes,
 # random POSTGRES_PASSWORD, ephemeral port, never the civora-host project.
@@ -64,16 +71,34 @@ case "$PROJECT" in
   civora-host*|civora-dec032*) echo "Refusing DRILL_PROJECT=$PROJECT: not a drill project"; exit 1 ;;
 esac
 
+# secret_from NAME: the value of DRILL_<NAME>_FILE (file) or DRILL_<NAME> (env),
+# trailing newlines stripped; empty when neither is set. Never a default.
+secret_from() {
+  local file_var="DRILL_${1}_FILE" env_var="DRILL_${1}"
+  if [ -n "${!file_var:-}" ]; then
+    [ -r "${!file_var}" ] || { echo "$file_var is not readable" >&2; return 1; }
+    tr -d '\r\n' < "${!file_var}"
+  else
+    printf %s "${!env_var:-}" | tr -d '\r\n'
+  fi
+}
+
 # The backup's SECRET_KEY_BASE: from a file or the environment, never a default.
-if [ -n "${DRILL_SECRET_KEY_BASE_FILE:-}" ]; then
-  [ -r "$DRILL_SECRET_KEY_BASE_FILE" ] || { echo "DRILL_SECRET_KEY_BASE_FILE is not readable"; exit 1; }
-  DRILL_KEYBASE="$(tr -d '\r\n' < "$DRILL_SECRET_KEY_BASE_FILE")"
-else
-  DRILL_KEYBASE="$(printf %s "${DRILL_SECRET_KEY_BASE:-}" | tr -d '\r\n')"
-fi
+DRILL_KEYBASE="$(secret_from SECRET_KEY_BASE)" || exit 1
 if [ "${#DRILL_KEYBASE}" -lt 32 ]; then
   echo "The backup's SECRET_KEY_BASE is required: set DRILL_SECRET_KEY_BASE_FILE (or DRILL_SECRET_KEY_BASE)."
   echo "See docs/ops/restore-runbook.md. A random key would pass the HTTP and count checks but cannot decrypt the backup's data."
+  exit 1
+fi
+
+# The backup's Active Record Encryption keys (the app boots only with them).
+DRILL_AR_PRIMARY_KEY="$(secret_from AR_PRIMARY_KEY)" || exit 1
+DRILL_AR_SALT="$(secret_from AR_SALT)" || exit 1
+DRILL_AR_PREVIOUS_KEYS="$(secret_from AR_PREVIOUS_KEYS)" || exit 1
+if [ "${#DRILL_AR_PRIMARY_KEY}" -lt 32 ] || [ "${#DRILL_AR_SALT}" -lt 32 ]; then
+  echo "The backup's Active Record Encryption keys are required: set DRILL_AR_PRIMARY_KEY_FILE and DRILL_AR_SALT_FILE"
+  echo "(or DRILL_AR_PRIMARY_KEY and DRILL_AR_SALT), each at least 32 characters. See docs/ops/restore-runbook.md."
+  echo "The app refuses to boot in production without them, and a random pair cannot decrypt the backup's contract-template data."
   exit 1
 fi
 
@@ -124,11 +149,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Isolated env: throwaway DB password, the backup's key, ephemeral port.
+# Isolated env: throwaway DB password, the backup's keys, ephemeral port.
 # POSTGRES_PASSWORD is exported so compose never interpolates the real .env one.
 DRILL_PASSWORD="$(openssl rand -hex 16)"
 POSTGRES_PASSWORD="$DRILL_PASSWORD"
-export DRILL_PASSWORD DRILL_KEYBASE POSTGRES_PASSWORD PORT
+export DRILL_PASSWORD DRILL_KEYBASE DRILL_AR_PRIMARY_KEY DRILL_AR_SALT DRILL_AR_PREVIOUS_KEYS POSTGRES_PASSWORD PORT
 
 verify_counts() {
   $DC exec -T db psql -U postgres -d decidim_app_production -Atc "
@@ -167,7 +192,7 @@ for i in $(seq 1 45); do
   sleep 2
 done
 
-echo "==> 5/6 Decrypt encrypted rows with the backup's SECRET_KEY_BASE"
+echo "==> 5/6 Decrypt encrypted rows with the backup's SECRET_KEY_BASE and encryption keys"
 ENC_RC=0
 ENC_OUT="$($DC exec -T app ./bin/rails restore_drill:verify_encryption 2>&1)" || ENC_RC=$?
 # The check prints counts only; show just its summary line.

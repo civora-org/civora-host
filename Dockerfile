@@ -44,6 +44,11 @@ RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile \
     && rm -rf node_modules tmp/* log/*
 
 # ---- Runtime: slim, non-root, no build tools ----
+# LibreOffice Writer (headless, no GUI) converts the filled contract-template
+# .docx to PDF (civora-org/civora-platform#211). fonts-liberation supplies the
+# metric-compatible Arial/Times/Courier substitutes the pilot templates need.
+# --no-install-recommends keeps it at about +140 MB compressed instead of +280.
+# docs/ops/libreoffice-converter.md
 FROM ruby:3.4.7-slim AS runtime
 
 ENV LANG=C.UTF-8 \
@@ -55,6 +60,7 @@ ENV LANG=C.UTF-8 \
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
       libpq5 libjemalloc2 tzdata libicu76 libvips42t64 \
+      libreoffice-writer-nogui fonts-liberation \
     && rm -rf /var/lib/apt/lists/* \
     && gem install bundler -v 4.0.19 \
     && groupadd -r -g 1000 rails \

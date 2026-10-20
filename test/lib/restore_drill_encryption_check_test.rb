@@ -87,7 +87,64 @@ class RestoreDrillEncryptionCheckTest < ActiveSupport::TestCase
     assert_not_includes RestoreDrill::EncryptionCheck.call.summary, credential.otp_secret
   end
 
+  test "skips contract template entries when the engine has no such model" do
+    result = RestoreDrill::EncryptionCheck.call(entry_model: nil)
+
+    assert_equal :none, result.status
+  end
+
+  test "passes when contract template personal values decrypt with the right keys" do
+    with_entry_model do |model|
+      model.create!(personal_values: { "meno" => "Ján Vzorový" })
+
+      result = RestoreDrill::EncryptionCheck.call(entry_model: model)
+
+      assert_equal :ok, result.status
+      assert_equal({ "contract_template_entries" => 1 }, result.verified)
+    end
+  end
+
+  test "ignores template entries that store no personal values" do
+    with_entry_model do |model|
+      model.create!
+
+      assert_equal :none, RestoreDrill::EncryptionCheck.call(entry_model: model).status
+    end
+  end
+
+  test "fails when contract template personal values were written under other encryption keys" do
+    with_entry_model do |model|
+      model.create!(personal_values: { "meno" => "Ján Vzorový" })
+
+      # The same table read by an app that holds different keys.
+      other_keys = entry_class(key: "z" * 40)
+      result = RestoreDrill::EncryptionCheck.call(entry_model: other_keys)
+
+      assert_equal :failed, result.status
+      assert_equal({ "contract_template_entries" => 1 }, result.failed)
+      assert_not_includes result.summary, "Ján"
+    end
+  end
+
   private
+
+  # A stand-in for the engine's ContractTemplateEntry (the pinned engine release
+  # predates it): the same serialize + encrypts pair on a throwaway table.
+  def with_entry_model
+    connection = ActiveRecord::Base.connection
+    connection.create_table(:restore_drill_probe_entries, force: true) { |t| t.text :personal_values }
+    yield entry_class
+  ensure
+    connection.drop_table(:restore_drill_probe_entries, if_exists: true)
+  end
+
+  def entry_class(**encrypts_options)
+    Class.new(ApplicationRecord) do
+      self.table_name = "restore_drill_probe_entries"
+      serialize :personal_values, type: Hash, coder: JSON
+      encrypts :personal_values, **encrypts_options
+    end
+  end
 
   def create_authorization
     FactoryBot.create(:authorization, :granted, user: @user, name: "dummy_authorization_handler",

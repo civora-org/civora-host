@@ -25,6 +25,7 @@ How secrets are handled in the Civora host app. Policy first, inventory second.
 | Secret | Used by | Lives in | Notes |
 |---|---|---|---|
 | `SECRET_KEY_BASE` | Rails session/cookie signing | `.env` (dev & prod) | rotate → invalidates sessions **and every enrolled admin second factor**: run `two_factor:reset_all` right after ([two-factor.md](two-factor.md)). **Not in `backups/`:** keep a copy in the password manager; the restore drill needs it ([restore-runbook.md](restore-runbook.md)) |
+| `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` / `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT` (+ optional `ACTIVE_RECORD_ENCRYPTION_PREVIOUS_PRIMARY_KEYS`) | Active Record Encryption of the contract templates' personal data (`personal_values`, engine; read by `config/initializers/active_record_encryption.rb`) | `.env` (prod), fixed non-secret keys in dev/test | **as critical as `SECRET_KEY_BASE`**: lose or replace them and every stored `personal_values` is unreadable, with no recovery. Production refuses to boot without both (at least 32 characters each). Custody and rotation: [Active Record Encryption keys](#active-record-encryption-keys) |
 | `POSTGRES_PASSWORD` | Postgres auth (compose + `database.yml`) | `.env` | dev compose overlay uses trust auth instead |
 | `DATABASE_USERNAME` / `DATABASE_PASSWORD` | `config/database.yml` | `.env` (prod), unset locally | local dev uses peer auth |
 | `DATABASE_URL` | `config/database.yml` (production block) | unset | only if moving to a URL-style DB config |
@@ -43,6 +44,20 @@ Secrets are never shared between environments (see [environments.md](environment
 
 **Decidim 0.32 upgrade:** `SECRET_KEY_BASE` must stay unchanged; the upgrade's encryption step (`decidim:upgrade:encryption`) re-encrypts only Decidim's own records. Back up the secret before the upgrade and never rotate it as a side effect. See [decidim-032-secrets-runbook.md](decidim-032-secrets-runbook.md).
 
+## Active Record Encryption keys
+
+The contracts engine encrypts the personal-data values of a contract template entry (names, addresses and ID numbers of natural persons) with Active Record Encryption (civora-org/civora-platform#211). The host owns the keys: `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` and `ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT`.
+
+**Generate** once per stack: `docker compose run --rm --no-deps -e SECRET_KEY_BASE_DUMMY=1 app ./bin/rails db:encryption:init` prints a primary key and a salt (ignore the deterministic key). `SECRET_KEY_BASE_DUMMY=1` lets the command run before the keys exist; the production boot check below would otherwise refuse it. `bin/demo-deploy` generates them for the demo. A key pair is never shared between stacks, and never reused from a demo or test stack on one with real data.
+
+**Custody: same entry and same rules as `SECRET_KEY_BASE`.** Put both values in the password manager entry that holds `SECRET_KEY_BASE`, and keep the offline escrow copy that covers the age key. They are **not** in `backups/` (`backup.sh` does not copy `.env`) and not in the repository. The database dump holds only ciphertext, so a backup without these keys restores to a stack whose contract-template personal data cannot be read, and the data is gone for good. Losing the keys is the same class of loss as losing both age keys.
+
+**Boot check.** In production the app raises at boot if either value is missing, blank, or shorter than 32 characters, and if only one of the two is set. A missing key is therefore a failed deploy, not a runtime error at the first save. The image build (assets precompile) is exempt because it has no secrets. An existing stack must have both values in `.env` **before** it is updated to this release.
+
+**Backups and restore.** The backup's own keys are required at restore time, exactly like `SECRET_KEY_BASE`: the restore drill takes them as `DRILL_AR_PRIMARY_KEY_FILE` and `DRILL_AR_SALT_FILE` and proves a decrypt ([restore-runbook.md](restore-runbook.md)). Every quarterly drill therefore also proves that the keys in the password manager are the right ones.
+
+**Rotation.** Never replace the primary key in place. To rotate (suspected leak, offboarding, or annually if you choose): 1. generate a new primary key; 2. put the new value in `ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY` and the old one in `ACTIVE_RECORD_ENCRYPTION_PREVIOUS_PRIMARY_KEYS` (comma-separated if there were several rotations); the salt stays the same; 3. deploy: old rows still decrypt through `previous`, new writes use the new key; 4. re-save the encrypted rows so they move to the new key (an engine task, or `Decidim::ContractsSk::ContractTemplateEntry.find_each(&:encrypt)` from a console); 5. once no row is under the old key, remove it from `PREVIOUS`. Keep the old key in the password manager until the oldest backup that still needs it has aged out (30 days), and give the restore drill `DRILL_AR_PREVIOUS_KEYS` for such a backup. Changing the salt is a rotation of every key and is not supported; do not do it.
+
 ## Backup encryption key (age)
 
 Backups are encrypted with [age](https://age-encryption.org) to public-key recipients (civora-org/civora-platform#167). The server holds only the **public** keys (`BACKUP_AGE_RECIPIENTS`), which can encrypt and cannot decrypt. That is the point: a stolen server, disk or bucket yields ciphertext only. The price is that the private key is the one thing that stands between you and an unrecoverable backup, so its custody is a procedure, not an afterthought.
@@ -60,7 +75,7 @@ One lost key then costs nothing, and losing both makes every backup unreadable; 
 
 **Per stack or shared.** One key pair per municipality limits a compromise to that city and keeps deletion per city clean; the cost is more keys to look after. At the pilot (one city) it is one pair. Do not reuse a key pair between a stack with real data and a demo or test stack.
 
-**Never next to the backup it opens.** The key does not go in the bucket, in the repository, in `.env` on the server, or in the same password-manager entry as the bucket credentials. The restore also needs the stack's `SECRET_KEY_BASE` (separate entry, see the inventory above): the age key opens the backup, `SECRET_KEY_BASE` opens the data inside it that Rails encrypted (admin TOTP seeds).
+**Never next to the backup it opens.** The key does not go in the bucket, in the repository, in `.env` on the server, or in the same password-manager entry as the bucket credentials. The restore also needs the stack's `SECRET_KEY_BASE` and Active Record Encryption keys (separate entry, see the inventory above): the age key opens the backup, `SECRET_KEY_BASE` opens the data inside it that Rails encrypted (admin TOTP seeds), and the encryption keys open the contract templates' personal data.
 
 **Rotation.** To retire a key, add the new public key to `BACKUP_AGE_RECIPIENTS` and remove the old one. New backups use the new set from the next night. Old backups still need the old key until they age out of the 30-day window; keep the old key until then, then destroy it. A rotation is also what to do if a private key may have leaked.
 
