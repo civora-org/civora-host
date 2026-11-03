@@ -13,3 +13,13 @@ AllCops:
     - "bin/*"
     - "node_modules/**/*"
     - "vendor/**/*"
+
+# decidim-dev 0.32.2 enforces Decidim/EnforcePermissionTo on every
+# controller action. These host controllers are not Decidim component
+# controllers and have no Decidim permission class: health is public
+# monitoring, and the two-factor controllers are guarded by their own
+# before_actions (authentication and enrolment state).
+Decidim/EnforcePermissionTo:
+  Exclude:
+    - "app/controllers/health_controller.rb"
+    - "app/controllers/two_factor/**/*"

@@ -14,7 +14,7 @@ Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.c
 
 | Component | Version |
 |---|---|
-| Decidim | 0.32.1 (Rails 8.1) |
+| Decidim | 0.32.2 (Rails 8.1) |
 | `decidim-contracts_sk` | v1.8.0 (pinned in the `Gemfile`) |
 | Ruby | 3.4.7 (`.ruby-version`) |
 | libvips | system library for image processing (replaces ImageMagick in Decidim 0.32); `libvips42t64` in the image |
@@ -213,7 +213,7 @@ The engine provides markup only. The Civora look and content live in this reposi
 | Engine configuration seams | `config/initializers/contracts_sk.rb` |
 | Civora public theme: tokens, self-hosted fonts, paper ground, header, hero, cards, footer signature | `app/packs/stylesheets/decidim/civora/`, `app/packs/fonts/civora/`, `config/tailwind.config.js.erb`, `app/views/layouts/decidim/footer/_mini.html.erb`; see [`docs/appearance.md`](docs/appearance.md) |
 
-The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.32.1 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views, the header links partial, the footer mini partial or the Tailwind config template drift from the installed gems.
+The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.32.2 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views, the header links partial, the footer mini partial or the Tailwind config template drift from the installed gems.
 
 Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
 

@@ -8,8 +8,8 @@
 # (CVE-2026-33168, -33173, -33174, -33195, -33202, -33658, -66066, -33169,
 # -33170, -33176), devise (CVE-2026-32700, CVE-2026-40295), shakapacker
 # (GHSA-96qw-h329-v5rg) and puma (CVE-2026-47736, CVE-2026-47737). What is
-# left is still blocked upstream by the decidim 0.32.1 pins:
-# - graphql >= 2.6.9 is unresolvable under decidim-api's `< 2.6`;
+# left is still blocked upstream by the decidim 0.32.2 pins (the graphql
+# ignores went away with the 0.32.2 bump, which relaxes graphql to `< 2.7`):
 # - rack-proxy >= 1.0.3 is unresolvable under decidim-core's `< 1.0`;
 # - rubyzip >= 3.4.0 is unresolvable under decidim-core's `~> 2.0`.
 # Everything else is fixed by `bundle update` within the constraints; this
@@ -23,23 +23,6 @@
 # Mirrors .bundler-audit.yml in the engine (decidim-contracts_sk).
 ---
 ignore:
-  # graphql 2.5.26 (decidim-api pin): parser-cache Marshal deserialization
-  - GHSA-rmxg-5p3r-j6hh
-  # graphql 2.5.26: authorization bypass, but only for schemas that opt in to
-  # the experimental Execution::Next runtime (context[:__graphql_execute_next]).
-  # decidim-api never sets it and the host has no GraphQL code of its own, so
-  # the default interpreter is the only path; first seen with the 0.32.1
-  # resolution (fix needs graphql >= 2.6.6, blocked by `< 2.6`).
-  - GHSA-j7xr-4g94-r9h3
-  # graphql 2.5.26 (decidim-api 0.32.1 pins `< 2.6`; fixes need >= 2.6.11 to
-  # 2.6.14). Four advisories first reported 2026-11-03: GHSA-4rw8-495r-pf6j,
-  # GHSA-965v-9v76-5hg2, GHSA-p3g2-4c7r-4fww, GHSA-q3cc-p5hm-55wj. Disposition:
-  # blocked upstream; REVISIT on the Decidim 0.32.2 bump (allows graphql < 2.7),
-  # tracked as a follow-up PR, which removes these entries.
-  - GHSA-4rw8-495r-pf6j
-  - GHSA-965v-9v76-5hg2
-  - GHSA-p3g2-4c7r-4fww
-  - GHSA-q3cc-p5hm-55wj
   # rack-proxy 0.8.3 (decidim-core pin); also ignored in the engine
   - GHSA-42qh-8mx8-7wqm
   # rubyzip 2.3.2 (decidim-core pin): path traversal on extraction (High).
