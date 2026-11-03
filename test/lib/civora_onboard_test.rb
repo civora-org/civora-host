@@ -217,7 +217,7 @@ class CivoraOnboardTest < ActiveSupport::TestCase
   test "verification reports the IČO, admin and unique-IČO checks" do
     result = CivoraOnboard::OrganizationProvisioner.call(config, admin_password: PASSWORD)
     org = result.organization
-    other = FactoryBot.create(:organization)
+    other = FactoryBot.create(:organization, available_locales: %w(sk en), default_locale: "sk")
     original = Decidim::ContractsSk.crz_organization_ico_resolver
     Decidim::ContractsSk.crz_organization_ico_resolver = ->(o) { VALID_ICO if [org.id, other.id].include?(o.id) }
 

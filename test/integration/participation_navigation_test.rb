@@ -49,7 +49,8 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
   end
 
   test "another organization's published process does not count" do
-    FactoryBot.create(:participatory_process, :published)
+    other = FactoryBot.create(:organization, available_locales: %w(sk en), default_locale: "sk")
+    FactoryBot.create(:participatory_process, :published, organization: other)
 
     get "/sk/"
 
