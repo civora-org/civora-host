@@ -107,12 +107,94 @@ header .main-bar__language-chooser > div[id*="dropdown-menu"] {
   box-shadow: none;
 }
 
-// Below 1440px the header is full (logo, search, language, five links) and
-// Decidim lets the search collapse to its icon; there is room to show the
-// placeholder from 1440px.
-@media (min-width: 1440px) {
+// The search is a real field from the desktop breakpoint up. Decidim gives
+// .main-bar__search no width of its own, so the flex row shrank it to its icon
+// whenever logo, language chooser and five links filled the bar (everything
+// below 1440px); there is no JS involved. The search now takes the free space
+// (never below 14rem, never above 22rem), the language chooser shows the locale
+// code, and the links tighten their gaps in steps so nothing wraps.
+// .civora-locale-code is rendered by the language chooser override.
+.civora-locale-code {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  header .main-bar {
+    padding-inline: 2rem;
+  }
+
+  header .main-bar > div:has(> div > .main-bar__search) {
+    flex: 1 1 auto;
+    gap: 1.5rem;
+    min-width: 0;
+  }
+
+  header .main-bar > div > div:has(> .main-bar__search) {
+    flex: 1 1 auto;
+    gap: 1rem;
+    min-width: 0;
+    max-width: 30rem;
+    padding-right: 1rem;
+  }
+
   header .main-bar__search {
-    width: 11rem;
+    flex: 1 1 14rem;
+    min-width: 14rem;
+    max-width: 22rem;
+  }
+
+  header .main-bar__language-chooser-desktop {
+    flex: none;
+  }
+
+  // Trigger: globe and code ("SK"); the full name stays for assistive
+  // technology and in the dropdown, which lists every language by name.
+  header .main-bar__language-chooser-desktop .civora-locale-code {
+    display: inline;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  header .main-bar__language-chooser-desktop .civora-locale-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  header .main-bar__language-chooser-desktop .main-bar__language-chooser-trigger {
+    padding-inline: 0.75rem;
+  }
+
+  header .main-bar__links-desktop > div {
+    gap: 0.25rem;
+  }
+}
+
+// 1024px to 1279px is the tightest: the link labels stay, their icons go.
+// The labels carry the meaning; the icons are decoration.
+@media (min-width: 1024px) and (max-width: 1279px) {
+  header .main-bar__links-desktop__item svg {
+    display: none;
+  }
+}
+
+@media (min-width: 1280px) {
+  header .main-bar {
+    padding-inline: 4rem;
+  }
+
+  header .main-bar__links-desktop > div {
+    gap: 0.5rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  header .main-bar__links-desktop > div {
+    gap: 1rem;
   }
 }
 
