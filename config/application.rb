@@ -2,6 +2,17 @@
 
 require_relative "boot"
 
+# Slovak first. Decidim reads these from the environment when decidim-core
+# loads (Decidim.default_locale / Decidim.available_locales, which feed
+# I18n.default_locale and the locale route scope), so they must be set before
+# `require "decidim/rails"`. Without them the global default is "en" and
+# Decidim::LocaleRouterDetector (decidim-core 0.32.2,
+# lib/decidim/routes/locale_redirects.rb) sends an anonymous visitor of "/" to
+# "/en/" before it consults the organization's default_locale. An operator can
+# still override either variable in the environment.
+ENV["DECIDIM_DEFAULT_LOCALE"] = "sk" if ENV["DECIDIM_DEFAULT_LOCALE"].to_s.empty?
+ENV["DECIDIM_AVAILABLE_LOCALES"] = "sk,en" if ENV["DECIDIM_AVAILABLE_LOCALES"].to_s.empty?
+
 require "decidim/rails"
 
 # Add the frameworks used by your app that are not loaded by Decidim.
