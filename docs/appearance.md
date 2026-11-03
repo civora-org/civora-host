@@ -169,16 +169,15 @@ home page, a process, a proposals list, the contracts catalogue and a static pag
 found one failure, in Decidim's stock language chooser (neutral-500 on paper,
 4.4:1), which the theme fixes.
 
-### What the contracts engine still does by itself
+### The contracts engine
 
-The catalogue and the contract page (`decidim-contracts_sk`) ship their own
-stylesheet (`.cs-*`, blue-grey ink and white chips) and their own Civora credit
-line (the engine's `shared/_civora_credit` partial, a muted signature at the foot
-of the public contract pages and the admin home; present in the pinned engine,
-v1.10.1). They sit on the paper ground and read fine, but they do not yet use the
-Civora tokens, and an engine page that renders its own credit shows it together
-with the footer signature. Moving the engine onto the host tokens is engine work,
-not part of this change.
+From v1.11.0 the catalogue and the contract pages (`decidim-contracts_sk`) read the
+theme's `--civora-*` custom properties through their own `--cs-*` tokens, with
+fallbacks to the engine's previous values, so they match the theme here and look
+unchanged on hosts without it. The engine's own Civora credit line
+(`shared/_civora_credit`) hides itself on public pages when the footer carries the
+host's signature (`.civora-sign`); the admin home keeps it. See "Public look and
+the Civora credit" in the engine README.
 
 ## Non-goals
 
