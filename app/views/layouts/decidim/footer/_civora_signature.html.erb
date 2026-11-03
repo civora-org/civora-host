@@ -1,0 +1,14 @@
+<%# The Civora signature, "the town leads, Civora signs" (civora.sk DESIGN.md): the
+    door mark and the word, linking to civora.sk. One quiet line in the footer,
+    never a header, no tagline, nothing taken from the town's palette. Rendered
+    by the footer/_mini override. The mark is inline SVG in its on-dark
+    variant (paper arch, terracotta door; civora.sk brand/wordmark-on-indigo.svg),
+    so there is no asset to ship or fetch. The link carries the accessible name;
+    the SVG is decorative so the name is not read twice. Styles: .civora-sign*
+    in app/packs/stylesheets/decidim/civora/_components.scss. %>
+<p class="civora-sign">
+  <a class="civora-sign__link" href="https://civora.sk" rel="noopener" aria-label="<%= t("civora.footer.signature") %>">
+    <svg class="civora-sign__mark" viewBox="6 6 52 52" width="22" height="22" aria-hidden="true" focusable="false"><path d="M12 58V30a20 20 0 0 1 40 0v28z" fill="#fbf6ee"/><path d="M24 58V32a8 8 0 0 1 16 0v26z" fill="#b5523a"/></svg>
+    <span>Civora</span>
+  </a>
+</p>

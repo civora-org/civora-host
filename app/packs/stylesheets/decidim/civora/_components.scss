@@ -1,0 +1,446 @@
+// =============================================================================
+// Civora shapes and surfaces for Decidim's public components: header, hero,
+// cards, buttons, forms, labels, panels, footer. Plain CSS, loaded after
+// decidim_core. Every selector below exists in decidim-core 0.32.1
+// (app/packs/stylesheets/decidim/*.scss); selectors repeat the gem's
+// specificity (for example "header .main-bar__links-desktop__item") so that
+// source order, not !important, decides.
+//
+// Shape language (civora.sk DESIGN.md): pills for actions and tags, 10px for
+// panels and fields, 1px hairlines instead of rings and shadows, flat.
+// =============================================================================
+
+// -- Header -------------------------------------------------------------------
+// Paper ground with one hairline under it; the links are ink, the icons carry
+// the town's accent. Decidim: white bar, every link and icon in --secondary,
+// hover turns the whole item a solid secondary.
+header #header-container {
+  border-bottom: 1px solid var(--civora-rule);
+}
+
+header .main-bar__links-desktop__item,
+header .main-bar__links-desktop__trigger,
+header .main-bar__dropdown-trigger,
+header .main-bar__links-desktop__trigger span,
+header .main-bar__links-desktop svg + span,
+header .main-bar__links-mobile__trigger,
+header .main-bar__links-mobile__trigger span,
+header .main-bar__links-mobile__login,
+header .main-bar__links-mobile {
+  color: var(--civora-ink);
+}
+
+header .main-bar__links-desktop__item,
+header .main-bar__links-desktop__trigger,
+header .main-bar__links-mobile__trigger {
+  border-radius: var(--civora-radius-pill);
+  padding-inline: 0.75rem;
+  font-weight: 600;
+}
+
+header .main-bar__links-desktop__item:hover,
+header .main-bar__links-desktop__trigger:hover,
+header .main-bar__links-mobile__trigger:hover {
+  background-color: var(--civora-cream);
+  color: var(--civora-ink);
+  border-radius: var(--civora-radius-pill);
+}
+
+header .main-bar__links-desktop__trigger:hover svg,
+header .main-bar__links-desktop__trigger:hover span,
+header .main-bar__links-mobile__trigger:hover svg,
+header .main-bar__links-mobile__trigger:hover span {
+  color: var(--civora-ink);
+}
+
+header .main-bar__links-desktop svg,
+header .main-bar__links-mobile svg {
+  color: var(--civora-accent);
+  fill: currentcolor;
+}
+
+header .main-bar__links-desktop__item-account,
+header .main-bar__avatar-name {
+  background-color: var(--civora-accent);
+}
+
+header .main-bar__links-desktop {
+  --tw-divide-opacity: 1;
+
+  border-color: var(--civora-rule);
+}
+
+header .main-bar__search form {
+  border-color: var(--civora-edge);
+  border-radius: var(--civora-radius-pill);
+  background-color: var(--civora-paper-light);
+}
+
+// The search field is a pill with the input inside it: the focus ring belongs
+// to the pill, not to the (square) input.
+header .main-bar__search form:focus-within {
+  outline: 3px solid var(--civora-focus);
+  outline-offset: 3px;
+}
+
+header .main-bar__search input:focus-visible {
+  outline: none;
+}
+
+// Language chooser: same pill and 3:1 edge as the search; Decidim sets its text
+// in neutral-500 (4.4:1 on paper), ink always passes.
+header .main-bar__language-chooser-trigger {
+  border-color: var(--civora-edge);
+  border-radius: var(--civora-radius-pill);
+  background-color: var(--civora-paper-light);
+}
+
+header .main-bar__language-chooser-trigger > span,
+header .main-bar__language-chooser-trigger > svg:first-of-type {
+  color: var(--civora-ink);
+}
+
+header .main-bar__language-chooser > div[id*="dropdown-menu"] {
+  background-color: var(--civora-paper-light);
+  border: 1px solid var(--civora-rule);
+  border-radius: var(--civora-radius);
+  box-shadow: none;
+}
+
+// Below 1440px the header is full (logo, search, language, five links) and
+// Decidim lets the search collapse to its icon; there is room to show the
+// placeholder from 1440px.
+@media (min-width: 1440px) {
+  header .main-bar__search {
+    width: 11rem;
+  }
+}
+
+// Dropdown panels (account menu, language chooser, "Menu"): raised paper,
+// hairline, 10px.
+.dropdown,
+.menu-bar__main-dropdown,
+.menu-bar__secondary-dropdown {
+  background-color: var(--civora-paper-light);
+  border: 1px solid var(--civora-rule);
+  border-radius: var(--civora-radius);
+  box-shadow: none;
+}
+
+// The breadcrumb band stays in the town's primary (stock Decidim): it is the
+// loudest place the town leads. Only its type changes (via the foundation).
+
+// -- Buttons ------------------------------------------------------------------
+// Pills, 600 weight. Fill stays the town's primary / secondary / tertiary.
+// Hover darkens the fill by mixing 22% black; Decidim mixes 30% black over
+// --secondary for every variant.
+.button {
+  border-radius: var(--civora-radius-pill);
+  font-weight: 600;
+}
+
+.button.button__lg,
+.button.button__xl {
+  min-height: 3rem;
+}
+
+.button.button__primary:not([disabled]):not(.disabled):hover,
+.button.button__primary.is-hover {
+  background: var(--civora-accent-dark);
+}
+
+.button.button__secondary:not([disabled]):not(.disabled):hover,
+.button.button__secondary.is-hover {
+  background: color-mix(in srgb, var(--secondary, #34408a) 78%, #000);
+}
+
+.button.button__tertiary:not([disabled]):not(.disabled):hover,
+.button.button__tertiary.is-hover {
+  background: color-mix(in srgb, var(--tertiary, #b5523a) 78%, #000);
+}
+
+// Outlined buttons: paper inside, not white; the border keeps the town hue.
+.button__transparent-primary,
+.button__transparent-secondary,
+.button__transparent-tertiary {
+  background-color: var(--civora-paper-light);
+}
+
+.button__pill,
+.button__pill--count {
+  border-radius: var(--civora-radius-pill);
+}
+
+// -- Hero (home) --------------------------------------------------------------
+// Left aligned, headline-scale type, shorter than Decidim's 60 to 65vh. With a
+// hero image the stock dark overlay and white title stay (the image is the
+// town's); without one the ground is cream, the title ink, and a modrotlac strip
+// printed in the town's primary closes the section.
+.hero {
+  height: auto;
+  min-height: min(34rem, 70vh);
+  align-items: flex-start;
+  padding-block: clamp(3rem, 8vw, 5.5rem);
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.hero__title {
+  max-width: 24ch;
+  text-align: left;
+  font-size: clamp(2.25rem, 1.4rem + 3.4vw, 3.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+}
+
+.hero__container[style*="url('')"] {
+  background: var(--civora-cream);
+}
+
+.hero__container[style*="url('')"] .hero__title {
+  color: var(--civora-ink);
+}
+
+.hero__container[style*="url('')"]::after {
+  content: "";
+  display: block;
+  height: 36px;
+  background: var(--civora-accent) var(--civora-mr);
+  background-size: 22px 22px;
+  background-position: center;
+}
+
+// The door: the Civora mark as a large, quiet shape standing on the strip,
+// from desktop width up. The arch is the town's accent and the doorway is
+// terracotta, the one warm thing on the page ("the town leads, Civora signs").
+// Decorative: generated content, no markup, hidden from assistive technology
+// by being content-less.
+@media (min-width: 1024px) {
+  .hero__container[style*="url('')"] .hero {
+    position: relative;
+  }
+
+  .hero__container[style*="url('')"] .hero::after,
+  .hero__container[style*="url('')"] .hero::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    border-radius: var(--civora-radius-pill) var(--civora-radius-pill) 0 0;
+  }
+
+  .hero__container[style*="url('')"] .hero::after {
+    right: 4rem;
+    width: 15rem;
+    height: 19rem;
+    background: var(--civora-accent);
+  }
+
+  .hero__container[style*="url('')"] .hero::before {
+    right: 8.75rem;
+    z-index: 1;
+    width: 5.5rem;
+    height: 11rem;
+    background: var(--civora-terracotta);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .hero__container[style*="url('')"] .hero::after,
+  .hero__container[style*="url('')"] .hero::before {
+    display: none;
+  }
+}
+
+// -- Process (participatory space) hero --------------------------------------
+// Same rule: an uploaded banner keeps its overlay; no banner gives a cream
+// ground, left-aligned ink text and a hairline.
+[data-process-hero]:not([style]) .participatory-space__hero {
+  backdrop-filter: none;
+  background-color: var(--civora-cream);
+  border-bottom: 1px solid var(--civora-rule);
+}
+
+[data-process-hero]:not([style]) .participatory-space__hero-text {
+  color: var(--civora-ink);
+  text-align: left;
+  padding-top: clamp(2rem, 5vw, 3.5rem);
+  padding-bottom: clamp(2rem, 5vw, 3.5rem);
+}
+
+[data-process-hero]:not([style]) .participatory-space__hero-text .h1 {
+  max-width: 24ch;
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+}
+
+[data-process-hero]:not([style]) .participatory-space__hero-slogan {
+  max-width: var(--civora-measure);
+  font-weight: 400;
+  font-size: 1.1875rem;
+  color: var(--civora-muted);
+}
+
+// The "Jump to" navigation card: the town's primary, 10px.
+.participatory-space__nav-container {
+  border-radius: var(--civora-radius);
+}
+
+// -- Cards --------------------------------------------------------------------
+// Flat, hairline, 10px. Decidim: 4px cream ring that turns tertiary on hover.
+.card__highlight,
+.card__grid {
+  box-shadow: none;
+  border: 1px solid var(--civora-rule);
+  border-radius: var(--civora-radius);
+  background-color: var(--civora-paper-light);
+  overflow: hidden;
+}
+
+.card__highlight:hover,
+.card__grid:hover {
+  box-shadow: none;
+  border-color: var(--civora-accent);
+}
+
+.card__highlight-img,
+.card__grid-img {
+  border-radius: 0;
+}
+
+// List cards (proposals, search results): a hairline rule on the left in place
+// of the cream bar; the town's accent on hover and focus.
+.card__list {
+  border-left-width: 3px;
+  border-left-color: var(--civora-rule);
+  border-radius: 0 var(--civora-radius) var(--civora-radius) 0;
+}
+
+.card__list:hover,
+.card__list:focus-visible {
+  border-left-color: var(--civora-accent);
+}
+
+.card__list-title {
+  font-family: var(--civora-font-heading);
+  font-weight: 700;
+}
+
+// -- Labels, tags, panels ----------------------------------------------------
+.label {
+  border-radius: var(--civora-radius-pill);
+  padding-inline: 0.75rem;
+}
+
+.callout,
+.flash {
+  border-radius: var(--civora-radius);
+}
+
+.layout-2col__aside::before {
+  background-color: var(--civora-cream);
+}
+
+.filter-container {
+  border-radius: var(--civora-radius);
+}
+
+// A ticked filter is a clay-tinted row. Decidim sets its text in --secondary,
+// which on a tinted row can fall under 4.5:1 for a mid-blue; ink always passes.
+.filter-container input[type="checkbox"]:checked + span,
+.filter-container input[type="radio"]:checked + span {
+  color: var(--civora-ink);
+}
+
+// -- Forms --------------------------------------------------------------------
+// Fields read as fields: paper-light ground, a 3:1 edge, 10px, and a 2px
+// accent outline on focus (Decidim: --secondary).
+.form-defaults input[type="date"]:not(.reset-defaults),
+.form-defaults input[type="datetime-local"]:not(.reset-defaults),
+.form-defaults input[type="email"]:not(.reset-defaults),
+.form-defaults input[type="month"]:not(.reset-defaults),
+.form-defaults input[type="number"]:not(.reset-defaults),
+.form-defaults input[type="password"]:not(.reset-defaults),
+.form-defaults input[type="search"]:not(.reset-defaults),
+.form-defaults input[type="tel"]:not(.reset-defaults),
+.form-defaults input[type="text"]:not(.reset-defaults),
+.form-defaults input[type="time"]:not(.reset-defaults),
+.form-defaults input[type="url"]:not(.reset-defaults),
+.form-defaults input[type="week"]:not(.reset-defaults),
+.form-defaults select:not(.reset-defaults),
+.form-defaults textarea:not(.reset-defaults) {
+  border-color: var(--civora-edge);
+  border-radius: var(--civora-radius);
+  background-color: var(--civora-paper-light);
+}
+
+.form-defaults input:not(.reset-defaults):focus,
+.form-defaults select:not(.reset-defaults):focus,
+.form-defaults textarea:not(.reset-defaults):focus {
+  outline-color: var(--civora-accent);
+}
+
+#form-search-mobile {
+  background-color: var(--civora-paper-light);
+  border-color: var(--civora-edge);
+}
+
+// -- Footer -------------------------------------------------------------------
+// The deep band: the town's primary darkened toward ink. Hairlines in paper at
+// low alpha. The Civora signature (layouts/decidim/footer/_mini override) sits
+// between the Decidim credit and the licence icons.
+footer .main-footer,
+footer .mini-footer {
+  background-color: var(--civora-band);
+}
+
+footer .main-footer__down {
+  border-top-color: rgb(251 246 238 / 18%);
+}
+
+footer .mini-footer {
+  border-top: 1px solid rgb(251 246 238 / 18%);
+}
+
+footer .mini-footer__content {
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+}
+
+footer .main-footer__top .footer__nav > [data-controls] {
+  font-family: var(--civora-font-heading);
+  font-size: 1.1875rem;
+  font-weight: 700;
+}
+
+// The signature (layouts/decidim/footer/_civora_signature): the door mark and
+// the word "Civora" in paper on the band. One line, no tagline.
+footer .civora-sign {
+  margin: 0;
+  line-height: 1.2;
+}
+
+footer .civora-sign__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--civora-paper);
+  font-family: var(--civora-font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+footer .civora-sign__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+footer .civora-sign__mark {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+@media print {
+  .hero__container::after {
+    display: none;
+  }
+}

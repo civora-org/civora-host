@@ -1,0 +1,27 @@
+<%# Host override of decidim-core 0.32.1 layouts/decidim/footer/_mini.html.erb:
+    the gem partial plus one block marked "Civora", the signature ("the town
+    leads, Civora signs"): the door mark and the word, linking to civora.sk,
+    rendered from footer/_civora_signature. Styles:
+    app/packs/stylesheets/decidim/civora/_components.scss. Drift: compare against the gem on a Decidim bump
+    (test/integration/footer_override_drift_test.rb). %>
+<div class="mini-footer">
+  <div class="mini-footer__content">
+    <div>
+      <a rel="decidim noopener noreferrer" href="https://decidim.org/" target="_blank" data-external-link="text-only">
+        <%= image_pack_tag("media/images/decidim-logo.svg", alt: t("layouts.decidim.footer.decidim_logo"), class: "max-h-8 block") %>
+      </a>
+      <p class="text-xs mt-2 [&_a]:underline">
+        <%= t("layouts.decidim.footer.made_with_open_source").html_safe %>
+      </p>
+    </div>
+    <%# Civora: start %>
+    <%= render partial: "layouts/decidim/footer/civora_signature" %>
+    <%# Civora: end %>
+    <a class="flex gap-1 hover:opacity-50" rel="license noopener noreferrer" href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank" data-external-link="text-only">
+      <span class="sr-only"><%= t("layouts.decidim.footer.cc_by_license") %></span>
+      <%= icon "creative-commons-line", class: "w-6 h-6 fill-current" %>
+      <%= icon "creative-commons-by-line", class: "w-6 h-6 fill-current" %>
+      <%= icon "creative-commons-sa-line", class: "w-6 h-6 fill-current" %>
+    </a>
+  </div>
+</div>

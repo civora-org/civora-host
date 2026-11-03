@@ -1,0 +1,225 @@
+// =============================================================================
+// Civora foundation for the public Decidim pages: tokens, page ground,
+// typography, focus. Direction and rationale: docs/appearance.md.
+//
+// "The town leads, Civora signs." Nothing here sets or reads a fixed brand
+// colour for the town's own identity: --primary, --secondary and --tertiary
+// come from the organization (Decidim emits them on :root) and keep doing the
+// work they do in stock Decidim (buttons, links, the breadcrumb band, the
+// heading underline). Civora supplies the ground they sit on: warm paper
+// surfaces, ink text, two typefaces, a 10px / pill shape language, hairlines
+// and a calm vertical rhythm.
+//
+// Plain CSS only (no @apply, no nesting, no !important): the layer is loaded
+// after decidim_core and wins ties by order. The admin is not styled here:
+// Decidim's admin has its own bundle (decidim_admin) that this file is not part
+// of.
+// =============================================================================
+
+:root {
+  // Dvere identity, same values as civora.sk brand/tokens.css.
+  --civora-indigo: #34408a;
+  --civora-indigo-deep: #232c63;
+  --civora-terracotta: #b5523a;
+  --civora-clay-tint: #f4d9cc;
+  --civora-paper: #fbf6ee;
+  --civora-paper-light: #fdfaf6; // derived: paper half way to white, for raised surfaces and fields
+  --civora-cream: #f3e9db;
+  --civora-rule: #e3d8c8;
+  --civora-ink: #2b2a40;
+  --civora-muted: #5b576c;
+
+  // The edge of an input or an outlined control must reach 3:1 against its
+  // ground (WCAG 1.4.11); the hairline rule (1.3:1) is for decoration only.
+  --civora-edge: #89868e;
+
+  // Typefaces. --civora-font-sans and --civora-font-display are also what
+  // config/tailwind.config.js.erb reads for the `font-sans` / `font-display`
+  // utilities (and so for every Decidim component that applies them).
+  --civora-font-sans: "Source Sans 3", "Source Sans Pro";
+  --civora-font-display: "Alegreya Sans", "Source Sans 3";
+  --civora-font-text: var(--civora-font-sans), ui-sans-serif, system-ui, sans-serif;
+  --civora-font-heading: var(--civora-font-display), ui-sans-serif, system-ui, sans-serif;
+
+  // Tailwind neutrals, as rgb triplets (config/tailwind.config.js.erb reads
+  // them with Decidim's own value as the fallback, so the admin, which does not
+  // load this file, is unchanged). Left: the utility; right: the Civora token.
+  --civora-black-rgb: 43 42 64; // black       ink
+  --civora-gray-rgb: 91 87 108; // gray        muted
+  --civora-gray-2-rgb: 74 70 96; // gray-2      secondary ink, between ink and muted
+  --civora-gray-3-rgb: 227 216 200; // gray-3      rule
+  --civora-gray-5-rgb: 243 233 219; // gray-5      cream
+  --civora-gray-6-rgb: 227 216 200; // gray-6      rule
+  --civora-background-rgb: 243 233 219; // background   cream
+  --civora-background-2-rgb: 253 250 246; // background-2 paper-light
+  --civora-background-3-rgb: 243 233 219; // background-3 cream
+  --civora-background-4-rgb: 244 217 204; // background-4 clay tint (the config adds 60% alpha)
+  --civora-background-5-rgb: 227 216 200; // background-5 rule
+
+  --civora-radius: 10px;
+  --civora-radius-pill: 999px;
+  --civora-measure: 66ch;
+
+  // The town's accent. Falls back to Dvere indigo when the organization has
+  // set no primary colour (same rule as the contracts engine's --cs-accent).
+  --civora-accent: var(--primary, var(--civora-indigo));
+  --civora-accent-dark: color-mix(in srgb, var(--primary, #34408a) 78%, #000);
+
+  // The deep band (footer): the town's primary, darkened and warmed toward
+  // ink. At 32% primary the band is dark for any primary, so paper text on it
+  // stays above 4.5:1.
+  --civora-band: color-mix(in srgb, var(--primary, #34408a) 32%, #151428);
+
+  --civora-focus: var(--civora-accent);
+
+  // Modrotlac tile (civora.sk --mr): paper dots, printed on the town's primary.
+  --civora-mr: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cg fill='%23fbf6ee'%3E%3Ccircle cx='11' cy='11' r='2.4'/%3E%3Ccircle cx='11' cy='5' r='1.7'/%3E%3Ccircle cx='11' cy='17' r='1.7'/%3E%3Ccircle cx='5' cy='11' r='1.7'/%3E%3Ccircle cx='17' cy='11' r='1.7'/%3E%3Ccircle cx='0' cy='0' r='1.3'/%3E%3Ccircle cx='22' cy='0' r='1.3'/%3E%3Ccircle cx='0' cy='22' r='1.3'/%3E%3Ccircle cx='22' cy='22' r='1.3'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+// Decidim is light only. Without this a browser or extension in dark mode may
+// repaint the (otherwise transparent) page ground black under dark text.
+html {
+  color-scheme: light;
+  background-color: var(--civora-paper);
+}
+
+body {
+  background-color: var(--civora-paper);
+  color: var(--civora-ink);
+  font-family: var(--civora-font-text);
+  line-height: 1.55;
+  font-variant-numeric: lining-nums;
+  text-rendering: optimizeLegibility;
+}
+
+// Surfaces that Decidim paints white.
+header #header-container,
+.layout-2col__main,
+.layout-main__buttons,
+.layout-aside__ctas-buttons {
+  background-color: var(--civora-paper);
+}
+
+// -- Typography ---------------------------------------------------------------
+// Alegreya Sans 700 for headings h1 to h4, Source Sans 3 for everything else
+// (600 for h5/h6 and labels). Alegreya has a smaller x-height than Source
+// Sans, so the scale runs a little above Decidim's: 2.75rem / 2.125rem /
+// 1.5rem / 1.3125rem.
+h1,
+h2,
+h3,
+h4,
+.h1,
+.h2,
+.h3,
+.h4,
+.title-decorator,
+.hero__title,
+.content-block__title {
+  font-family: var(--civora-font-heading);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+h5,
+h6,
+.h5,
+.h6 {
+  font-family: var(--civora-font-text);
+  font-weight: 600;
+}
+
+.h1,
+.title-decorator,
+.participatory-space__hero-text .h1 {
+  font-size: clamp(2rem, 1.4rem + 2vw, 2.75rem);
+  line-height: 1.1;
+}
+
+.h2,
+.home__section-title {
+  font-size: clamp(1.65rem, 1.3rem + 1.2vw, 2.125rem);
+  line-height: 1.15;
+}
+
+.h3 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.h4 {
+  font-size: 1.3125rem;
+  line-height: 1.2;
+}
+
+// The short bar under a heading: the town's tertiary colour, slimmer and
+// rounded (Decidim: 4px, square-bottomed).
+.decorator::after {
+  height: 3px;
+  width: 2.5rem;
+  border-radius: var(--civora-radius-pill);
+}
+
+// Reading copy: ink, 1.125rem, a comfortable measure. Decidim sets this
+// block in gray-2 (now the secondary ink); body copy is the primary ink.
+.editor-content {
+  color: var(--civora-ink);
+  font-size: 1.125rem;
+  line-height: 1.55;
+}
+
+.editor-content > *,
+.layout-1col.cols-6 .editor-content > * {
+  max-width: var(--civora-measure);
+}
+
+.editor-content a,
+.text-with-links a {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.editor-content a:hover,
+.text-with-links a:hover {
+  text-decoration-thickness: 2px;
+}
+
+::selection {
+  background: var(--civora-clay-tint);
+  color: var(--civora-ink);
+}
+
+// -- Focus --------------------------------------------------------------------
+// One visible ring everywhere: 3px in the town's accent, 3px off the element.
+// On the deep band and the breadcrumb band (the town's primary) the ring turns
+// paper so it never disappears into its own ground.
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+.button:focus-visible {
+  outline: 3px solid var(--civora-focus);
+  outline-offset: 3px;
+}
+
+.main-footer :focus-visible,
+.mini-footer :focus-visible,
+.menu-bar__container :focus-visible,
+.participatory-space__nav-container :focus-visible,
+.layout-container__skip:focus-visible {
+  outline-color: var(--civora-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}

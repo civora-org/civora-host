@@ -1,0 +1,119 @@
+// Civora host copy of decidim-core 0.32.1 lib/decidim/assets/tailwind/tailwind.config.js.erb.
+// Decidim reads config/tailwind.config.js.erb instead of its own template when
+// it exists (Decidim::Assets::Tailwind::Instance#configuration_template_path)
+// and writes the result to tailwind.config.js at build time.
+//
+// Civora's theme is applied through CSS variables with Decidim's own value as
+// the fallback: every line below marked "Civora:" reads var(--civora-..., <the
+// Decidim value>). The variables are defined only in the public stylesheet
+// pack (decidim_overrides, app/packs/stylesheets/decidim/civora/_foundation.scss);
+// the admin does not load it, so the admin keeps Decidim's stock values.
+// The organization colours (primary, secondary, tertiary) are not touched: the
+// town leads.
+//
+// test/integration/theme_override_drift_test.rb fails when the gem template
+// changes, so re-base this file on a Decidim bump. Rationale: docs/appearance.md.
+//
+
+const { inherit, current, transparent, white, neutral } = require("tailwindcss/colors")
+
+const withOpacity =
+  (variable) =>
+  ({ opacityValue }) =>
+    opacityValue === undefined
+      ? `rgb(var(${variable}))`
+      : `rgb(var(${variable}) / ${opacityValue})`;
+
+// Civora: a colour read from an rgb-triplet variable, with Decidim's triplet as
+// the fallback. (The two colours Decidim defines with a built-in alpha, gray
+// and background-4, are plain strings below: Tailwind would overwrite a
+// function colour's alpha with 1.)
+const civora =
+  (variable, fallback) =>
+  ({ opacityValue }) =>
+    opacityValue === undefined
+      ? `rgb(var(${variable}, ${fallback}))`
+      : `rgb(var(${variable}, ${fallback}) / ${opacityValue})`;
+
+module.exports = {
+  // This content is generated automatically by decidim:shakapacker:install task, it
+  // should not be updated manually.
+  // The array must contain all the decidim modules active in the application
+  content: [<%= tailwind_content_directories %>].flatMap(directory => [
+    `${directory}/app/views/**/*.html.erb`,
+    `${directory}/app/cells/**/*.{rb,erb}`,
+    `${directory}/app/helpers/**/*.rb`,
+    `${directory}/app/packs/**/*.js`,
+    `${directory}/lib/**/*.rb`
+  ]),
+  // Comment out the next line to disable purging the tailwind styles
+  // safelist: [{ pattern: /.*/ }],
+  theme: {
+    colors: {
+      inherit,
+      current,
+      transparent,
+      white,
+      neutral,
+      primary: withOpacity("--primary-rgb"),
+      secondary: withOpacity("--secondary-rgb"),
+      tertiary: withOpacity("--tertiary-rgb"),
+      success: "#28A745",
+      alert: "#ED1C24",
+      warning: "#FFB703",
+      black: civora("--civora-black-rgb", "2 2 3"), // Civora: ink (was black: "#020203")
+      gray: {
+        DEFAULT: "rgb(var(--civora-gray-rgb, 107 114 128) / 0.8)", // Civora: muted, 80% opacity as in Decidim (was "#6B7280CC")
+        2: civora("--civora-gray-2-rgb", "62 76 92"), // Civora: secondary ink (was "#3E4C5C")
+        3: civora("--civora-gray-3-rgb", "225 229 239"), // Civora: rule (was "#E1E5EF")
+        4: "#242424", // footer ground; the Civora footer is set in the public stylesheet
+        5: civora("--civora-gray-5-rgb", "246 248 250"), // Civora: cream (was "#F6F8FA")
+        6: civora("--civora-gray-6-rgb", "211 213 217") // Civora: rule (was "#D3D5D9")
+      },
+      background: {
+        DEFAULT: civora("--civora-background-rgb", "243 244 247"), // Civora: cream (was "#F3F4F7")
+        2: civora("--civora-background-2-rgb", "250 251 252"), // Civora: paper-light (was "#FAFBFC")
+        3: civora("--civora-background-3-rgb", "239 239 239"), // Civora: cream (was "#EFEFEF")
+        4: "rgb(var(--civora-background-4-rgb, 228 238 255) / 0.6)", // Civora: clay tint, 60% opacity as in Decidim (was "#E4EEFF99")
+        5: civora("--civora-background-5-rgb", "233 233 233") // Civora: rule (was "#E9E9E9")
+      }
+    },
+    container: {
+      center: true,
+      padding: {
+        DEFAULT: "1rem",
+        lg: "4rem"
+      }
+    },
+    fontFamily: {
+      // Civora: the public pack sets --civora-font-sans (Source Sans 3, self-hosted); elsewhere it stays Source Sans Pro.
+      sans: ['var(--civora-font-sans, "Source Sans Pro")', "ui-sans-serif", "system-ui", "sans-serif"],
+      // Civora: Alegreya Sans 700 for headings (public pack only).
+      display: ['var(--civora-font-display, "Source Sans Pro")', "ui-sans-serif", "system-ui", "sans-serif"]
+    },
+    fontSize: {
+      xs: ["12px", "16px"],
+      sm: ["14px", "18px"],
+      md: ["16px", "20px"],
+      lg: ["18px", "23px"],
+      xl: ["20px", "25px"],
+      "2xl": ["24px", "30px"],
+      "3xl": ["32px", "40px"],
+      "4xl": ["36px", "45px"],
+      "5xl": ["48px", "60px"]
+    },
+    extend: {
+      // Civora: the card radius (10px) in the public pack; Tailwind's 0.25rem elsewhere.
+      borderRadius: {
+        DEFAULT: "var(--civora-radius, 0.25rem)"
+      },
+      transitionProperty: {
+        'top': 'top',
+      },
+      screens: {
+        'xs': '375px'
+      }
+    }
+  },
+  plugins: [require("@tailwindcss/typography")]
+}

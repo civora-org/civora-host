@@ -8,6 +8,17 @@
 // By default this is empty.
 
 // =============================================================================
+// Civora public theme (docs/appearance.md): self-hosted typefaces, the Civora
+// foundation (tokens, paper ground, typography, focus) and the shapes and
+// surfaces of the public components. @use rules must come first in a Sass
+// file; the theme sets no display on the header, footer or banners, so the
+// print layer below stays authoritative for print.
+// =============================================================================
+@use "civora/fonts";
+@use "civora/foundation";
+@use "civora/components";
+
+// =============================================================================
 // Print layer
 //
 // Decidim 0.32 core ships no print stylesheet (only qr.scss has @media print
@@ -127,6 +138,7 @@
   .hero__cta {
     flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
+
