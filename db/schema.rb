@@ -612,6 +612,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "group_label"
+    t.string "party_part"
     t.index ["contract_template_id", "key"], name: "idx_contracts_sk_template_fields_unique_key", unique: true
   end
 
@@ -724,7 +725,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.string "address"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "template_slot"
     t.index ["contract_id", "role"], name: "idx_contracts_sk_parties_on_contract_id_and_role"
+    t.index ["contract_id", "template_slot"], name: "idx_contracts_sk_parties_on_contract_id_and_slot", unique: true
   end
 
   create_table "decidim_contracts_sk_reference_counters", force: :cascade do |t|

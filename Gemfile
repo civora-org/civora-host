@@ -14,7 +14,7 @@ gem "decidim", "0.32.2"
 # gem "decidim-initiatives", "0.32.2"
 # gem "decidim-templates", "0.32.2"
 
-gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.11.0"
+gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.12.0"
 
 gem "bootsnap", "~> 1.3"
 
