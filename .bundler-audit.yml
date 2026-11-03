@@ -31,6 +31,15 @@ ignore:
   # the default interpreter is the only path; first seen with the 0.32.1
   # resolution (fix needs graphql >= 2.6.6, blocked by `< 2.6`).
   - GHSA-j7xr-4g94-r9h3
+  # graphql 2.5.26 (decidim-api 0.32.1 pins `< 2.6`; fixes need >= 2.6.11 to
+  # 2.6.14). Four advisories first reported 2026-11-03: GHSA-4rw8-495r-pf6j,
+  # GHSA-965v-9v76-5hg2, GHSA-p3g2-4c7r-4fww, GHSA-q3cc-p5hm-55wj. Disposition:
+  # blocked upstream; REVISIT on the Decidim 0.32.2 bump (allows graphql < 2.7),
+  # tracked as a follow-up PR, which removes these entries.
+  - GHSA-4rw8-495r-pf6j
+  - GHSA-965v-9v76-5hg2
+  - GHSA-p3g2-4c7r-4fww
+  - GHSA-q3cc-p5hm-55wj
   # rack-proxy 0.8.3 (decidim-core pin); also ignored in the engine
   - GHSA-42qh-8mx8-7wqm
   # rubyzip 2.3.2 (decidim-core pin): path traversal on extraction (High).
