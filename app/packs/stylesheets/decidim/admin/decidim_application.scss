@@ -1,0 +1,6 @@
+// Host override of decidim-admin's (empty) stylesheets/decidim/admin/decidim_application.scss.
+// Decidim compiles it first into the `decidim_admin_overrides` pack, which the
+// admin layout links after decidim_core and decidim_admin, so it wins ties by
+// order. Civora admin chrome: docs/appearance.md ("Civora admin chrome").
+@use "../civora/fonts";
+@use "../civora/admin";

@@ -89,7 +89,7 @@ against the pinned decidim-core/admin 0.32.1 gems.
 municipality keep that municipality's identity through its organization colours
 (`--primary`, `--secondary`, `--tertiary`, set as above). Civora supplies the
 foundation under them: warm paper surfaces, two typefaces, a shape language, calm
-spacing and a small signature in the footer. The admin is not restyled.
+spacing and a small signature in the footer. The admin has its own chrome, below.
 
 ### Direction note
 
@@ -119,12 +119,40 @@ spacing and a small signature in the footer. The admin is not restyled.
 | Components | `app/packs/stylesheets/decidim/civora/_components.scss` | Header, buttons, hero, process hero, cards, labels, forms, footer and signature. |
 | Entry | `app/packs/stylesheets/decidim/decidim_application.scss` | `@use`s the three files above, then the host's print layer and hero CTA rule. |
 
-**The admin is unchanged.** The Civora variables are defined only in the public
-pack (`decidim_overrides`, which `decidim_application.scss` compiles into).
-Decidim's admin loads `decidim_core` and `decidim_admin` but not that pack, so
-every `var(--civora-…, <fallback>)` in the shared Tailwind build resolves to the
-stock Decidim value there. Verified by loading a public page with the overrides
-stylesheet removed and comparing computed styles with the pre-theme build.
+**The public pack does not reach the admin.** The `--civora-…` variables of the
+public theme are defined only in the public pack (`decidim_overrides`, which
+`decidim_application.scss` compiles into). Decidim's admin loads `decidim_core`
+and `decidim_admin`, so every `var(--civora-…, <fallback>)` in the shared
+Tailwind build resolves to the stock Decidim value there. The admin chrome is a
+separate layer, next section.
+
+## Civora admin chrome
+
+The admin is Civora's own product surface (the clerk's desk), so the Dvere
+identity leads there and the town's colours do not. Decidim's admin ignores the
+organization colours anyway: `decidim-admin`'s `application.scss` hard-codes
+`--primary`, `--secondary` and `--tertiary` on `:root`, so nothing a town picks
+can reach the chrome or break its contrast. Direction: the "Pracovný stôl" brief
+(`decidim-contracts_sk` `tmp/qa-2026-11-03/admin-redesign-brief.md`, section 1).
+
+| | |
+| --- | --- |
+| **Hook** | `app/packs/stylesheets/decidim/admin/decidim_application.scss`, which replaces an empty file of the same path in `decidim-admin`. `decidim_admin_overrides.scss` `@use`s it and the admin layout links that pack after `decidim_core` and `decidim_admin` (`append_stylesheet_pack_tag`), so it wins ties by order. It `@use`s `civora/fonts` (Source Sans 3 again, the admin pack does not load the public one) and `civora/admin`, the rules, whose tokens are `--desk-*` so the public `--civora-*` set and the shared Tailwind fallbacks stay out of the admin. No Decidim core patch, no view override. |
+| **Sidebar** | Deep indigo `#232c63`, paper text (12.1:1). Active item: paper-light pill with indigo-deep text (12.5:1). Hover: a paper wash. Focus: a 3px paper ring. Icons follow the text colour. |
+| **Logo** | Always on a paper-light plate (10px corners, 8px padding). A town's logo can be any colour (navy, black, red, the Civora indigo wordmark) and none is safe on deep indigo; on a paper plate every one reads the same, so no per-organization logo variant is needed. Decidim's built-in mark (an inline SVG drawn white, used when no logo is uploaded) needs no plate on this ground. Checked live with the Civora PNG and a black square. |
+| **Topbar** | Paper `#fbf6ee`, hairline `#e3d8c8` below, ink text. "Zobraziť stránku" is a quiet outlined control; the language switch and user menu stay in ink. Replaces the yellow `--tertiary` bar. |
+| **Breadcrumb band** | Was a slate bar with white text. Now on the page ground with a hairline, ink path, indigo links. The "Správa" menu trigger beside it is the same quiet outlined control (Decidim's `.button:hover` turns it white on a dark overlay; the rule out-ranks that). |
+| **Ground and panels** | Page paper, panels paper-light with a hairline and 8px corners (form cards, table wrappers); the white secondary-nav wrapper is dropped so panels are one level deep. Sticky save bar: paper-light, hairline above, the save button filled indigo. |
+| **Action colour** | `--primary` and `--secondary` are set to Dvere indigo `#34408a` for the admin only (they were red and blue), so every `.button__primary`, `.button__secondary` and `text-secondary` link reads as one action colour (white on indigo 9.4:1, indigo on paper 8.7:1). `--tertiary` is left alone (the colour-picker swatches read it). |
+| **Controls** | Inputs, selects and textareas: 1px `#89868e` edge (3.4:1 on paper-light; Decidim's `#e5e5e5` on `#fafbfc` is 1.2:1, under WCAG 1.4.11), paper-light fill, 6px corners, an indigo ring on focus. |
+| **Type** | Source Sans 3 (400, 600, 700, the files the public theme ships). |
+| **Not here** | The engine's own admin screens keep their `.cs-admin-*` styles (white blocks on the contracts home are the engine's, restyled in the engine PRs of the brief). |
+
+Selectors depend on Decidim's admin markup (`.layout-nav`, `.main-nav`, `.logo`,
+`.title-bar`, `.process-title`, `.item__edit-sticky`, `.item_show__wrapper`). If a
+Decidim bump renames one, that part falls back to stock Decidim: the page stays
+correct, just unthemed. `test/integration/theme_override_drift_test.rb` guards the
+hook itself.
 
 ### Overridden Decidim files (each one is an upgrade risk)
 
@@ -134,6 +162,7 @@ stylesheet removed and comparing computed styles with the pre-theme build.
 | `app/views/layouts/decidim/header/_main_language_chooser.html.erb` | decidim-core 0.32.2 `app/views/layouts/decidim/header/_main_language_chooser.html.erb` | One block between `<%# Civora: start %>` and `<%# Civora: end %>` renders the locale code and keeps the full name (hidden visually on desktop, shown on mobile). | `test/integration/header_override_drift_test.rb` |
 | `app/views/layouts/decidim/header/_main_links_desktop.html.erb` | decidim-core 0.32.2 (same path) | Help, Contracts and Participation links, plus a guard that leaves out the "Menu" button while it duplicates the bar (three marked blocks). | `test/integration/header_override_drift_test.rb` |
 | `config/tailwind.config.js.erb` | decidim-core 0.32.1 `lib/decidim/assets/tailwind/tailwind.config.js.erb` | The lines marked `Civora:` (neutrals, font families, radius), plus a helper. | `test/integration/theme_override_drift_test.rb` |
+| `app/packs/stylesheets/decidim/admin/decidim_application.scss` | decidim-admin 0.32.2 (same path; an empty hook meant to be replaced) | The admin chrome: `@use`s `civora/fonts` and `civora/admin`. | `test/integration/theme_override_drift_test.rb` |
 
 New, not an override: `app/views/layouts/decidim/footer/_civora_signature.html.erb`.
 The header, hero and cards are restyled by CSS only. The earlier overrides
@@ -183,5 +212,5 @@ the Civora credit" in the engine README.
 
 - **No per-engine CSS in the host.** The `decidim-contracts_sk` engine ships its
   own stylesheet; the host theme does not restyle it.
-- **Admin follows host defaults.** The admin interface keeps the stock Decidim
-  admin look; no admin-specific theming.
+- **No per-town admin theming.** The admin chrome is Civora's, the same for every
+  town; the organization colours do not reach it. Only the logo is the town's.
