@@ -107,6 +107,44 @@ header .main-bar__language-chooser > div[id*="dropdown-menu"] {
   box-shadow: none;
 }
 
+// Header logo: 32px tall from the desktop breakpoint (28px below), width
+// follows the image. Decidim lets the image fill max-h-16 (64px), which made the
+// wordmark 41px and the bar heavier than the content under it. The height is
+// fixed rather than a ceiling so a small upload is not left tiny, and the width
+// is capped (object-fit keeps the proportions) so a long wordmark never crowds
+// the search. A square crest comes out 32px square, a wide wordmark about 105px
+// wide. The padding sits on the link, not the image, so the hit area and the
+// focus ring stay 44px tall. Header only: the footer and content images are not
+// matched. The desktop bar drops from 5rem to 4.5rem to match; the mobile bar
+// stays 5rem because its logo falls back to the town name as wrapped text when
+// no favicon is uploaded, which needs the room.
+header .main-bar .main-bar__logo a {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  border-radius: var(--civora-radius);
+}
+
+header .main-bar .main-bar__logo a img {
+  height: 1.75rem;
+  width: auto;
+  max-height: none;
+  max-width: 10rem;
+  object-fit: contain;
+  object-position: left center;
+}
+
+@media (min-width: 1024px) {
+  header .main-bar .main-bar__logo a img {
+    height: 2rem;
+    max-width: 11rem;
+  }
+
+  header .main-bar {
+    height: 4.5rem;
+  }
+}
+
 // The search is a real field from the desktop breakpoint up. Decidim gives
 // .main-bar__search no width of its own, so the flex row shrank it to its icon
 // whenever logo, language chooser and five links filled the bar (everything
