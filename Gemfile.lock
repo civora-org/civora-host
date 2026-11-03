@@ -1,18 +1,23 @@
 GIT
   remote: https://github.com/civora-org/decidim-contracts_sk.git
-  revision: 1969c6ed4fec7294363c895a4d62dadfabc33b7a
-  tag: v1.8.1
+  revision: 1efa0485f32970c994edb0709f6ded32b3115c86
+  tag: v1.10.0
   specs:
-    decidim-contracts_sk (1.8.1)
+    decidim-contracts_sk (1.10.0)
       csv (~> 3.0)
       decidim-admin (>= 0.31.5, < 0.33)
       decidim-core (>= 0.31.5, < 0.33)
       json (>= 2.0, < 3.0)
+      nokogiri (>= 1.15, < 2)
+      pdf-reader (~> 2.12)
       prawn (~> 2.5.0)
+      rubyzip (>= 2.3, < 3)
+      sablon (~> 0.4.3)
 
 GEM
   remote: https://rubygems.org/
   specs:
+    Ascii85 (2.0.1)
     action_text-trix (2.1.19)
       railties
     actioncable (8.1.4)
@@ -95,6 +100,7 @@ GEM
       activesupport (>= 6.1)
     addressable (2.9.2)
       public_suffix (>= 2.0.2, < 8.0)
+    afm (1.0.1)
     anonymous_loader (0.1.3)
       version_gem (~> 1.1, >= 1.1.14)
     ast (2.4.3)
@@ -484,6 +490,7 @@ GEM
       ostruct (~> 0.6)
       sass-embedded (~> 1.58)
     hashdiff (1.2.1)
+    hashery (2.1.2)
     hashie (5.1.0)
       logger
     hexapdf (1.6.0)
@@ -675,6 +682,11 @@ GEM
       ast (~> 2.4.1)
       racc
     pdf-core (0.10.0)
+    pdf-reader (2.16.0)
+      Ascii85 (>= 1.0, < 3.0, != 2.0.0)
+      afm (>= 0.2.1, < 2)
+      hashery (~> 2.0)
+      ttfunk
     pg (1.6.3)
     pg (1.6.3-aarch64-linux)
     pg (1.6.3-aarch64-linux-musl)
@@ -897,6 +909,9 @@ GEM
       nokogiri (>= 1.10.8)
       rubyzip (>= 1.3.0)
     rubyzip (2.3.2)
+    sablon (0.4.3)
+      nokogiri (>= 1.8.5)
+      rubyzip (>= 1.3.0)
     sass-embedded (1.105.1-aarch64-linux-gnu)
       google-protobuf (~> 4.31)
     sass-embedded (1.105.1-aarch64-linux-musl)
@@ -1057,6 +1072,7 @@ DEPENDENCIES
   web-console (~> 4.2)
 
 CHECKSUMS
+  Ascii85 (2.0.1) sha256=15cb5d941808543cbb9e7e6aea3c8ec3877f154c3461e8b3673e97f7ecedbe5a
   action_text-trix (2.1.19) sha256=7012f59421009cf284aa651294896414d653a61a2417c9b8714c8476d2f74009
   actioncable (8.1.4) sha256=cfcd72f8c861e01ccdc96d772ad8c5ad6ed0ea7c571aef81a794b6027eaa7f11
   actionmailbox (8.1.4) sha256=9c4525e577ebb671ce558f3ea78b8a634f64e56a0e6e8d105b28b873793a06eb
@@ -1072,6 +1088,7 @@ CHECKSUMS
   activesupport (8.1.4) sha256=891dd3fe43c4fc8391934b237b1189bb1f661c932a84a840043db9d46a4e80df
   acts_as_list (1.2.6) sha256=8345380900b7bee620c07ad00991ccee59af3d8c9e8574f426e321da2865fdc8
   addressable (2.9.2) sha256=9117c7e7d6ee07230e75ce41fb9401ae55354dc654fcd0e862ba41d539e9a610
+  afm (1.0.1) sha256=4fc98c6ea9cad60c25ae12bad517513b0d6fdbedc099e25be88bf47977b7d879
   anonymous_loader (0.1.3) sha256=084a18e2439144d955447dc11dfc982f41fcd1583ad32d4d55151325dc44cb55
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   auth-sanitizer (0.2.3) sha256=db10aac92cfbe4c64ab637eebcbe1d67395d1694798041362173370f59933e3c
@@ -1124,7 +1141,7 @@ CHECKSUMS
   decidim-blogs (0.32.2) sha256=172671ec835a0ac6896c62ae6aae2c096591f3422ae248fdda8cf55a79573fab
   decidim-budgets (0.32.2) sha256=fe2d954091e741bbe93bb5071bc6680dfb71fd77c9638bd815efa27f7a97127d
   decidim-comments (0.32.2) sha256=8c38b9140072bb6fba78dce6de527d465b4fec206a0e418ff6f0379234b8dff5
-  decidim-contracts_sk (1.8.1)
+  decidim-contracts_sk (1.10.0)
   decidim-core (0.32.2) sha256=3e65f8cad2bfbab6b6859222778764e45454d7f074d58cc456790dcd908f45e3
   decidim-debates (0.32.2) sha256=2fb13bc687f7243d1caf6b14ad56228545a3f41fb0872108257959ba62081bf1
   decidim-dev (0.32.2) sha256=3329ca7aabd87f2c3827b4bea1d1b22b587db81461fa44be7bd941885d4f73da
@@ -1191,6 +1208,7 @@ CHECKSUMS
   graphql (2.6.14) sha256=3b20053c488cdaaef747e10f17453b16b163b59d039533a26e4d5b23505dc228
   graphql-docs (6.0.0) sha256=baa0d96977d549362667695583345fec22ec23b9b6945ad7fc3b6a1ae176051a
   hashdiff (1.2.1) sha256=9c079dbc513dfc8833ab59c0c2d8f230fa28499cc5efb4b8dd276cf931457cd1
+  hashery (2.1.2) sha256=d239cc2310401903f6b79d458c2bbef5bf74c46f3f974ae9c1061fb74a404862
   hashie (5.1.0) sha256=c266471896f323c446ea8207f8ffac985d2718df0a0ba98651a3057096ca3870
   hexapdf (1.6.0) sha256=78e32fc5a088a347bcb2cad4ab327cbdd0a0c5e1e77963b52460eef78d402582
   highline (3.1.2) sha256=67cbd34d19f6ef11a7ee1d82ffab5d36dfd5b3be861f450fc1716c7125f4bb4a
@@ -1262,6 +1280,7 @@ CHECKSUMS
   paranoia (3.1.0) sha256=36574a46e8df663d0da7d9008e987b72a6a9eccee13c058b7094acc810e39f52
   parser (3.3.12.0) sha256=21a6d7f755d5a24dfbdc6e6b772e4e879a52e7631a88bc5a3a134606052c9828
   pdf-core (0.10.0) sha256=0a5d101e2063c01e3f941e1ee47cbb97f1adfc1395b58372f4f65f1300f3ce91
+  pdf-reader (2.16.0) sha256=bf1b5564c085264d8279bde3cf1467778b75841494d20c0fe7da3dad475f3732
   pg (1.6.3) sha256=1388d0563e13d2758c1089e35e973a3249e955c659592d10e5b77c468f628a99
   pg (1.6.3-aarch64-linux) sha256=0698ad563e02383c27510b76bf7d4cd2de19cd1d16a5013f375dd473e4be72ea
   pg (1.6.3-aarch64-linux-musl) sha256=06a75f4ea04b05140146f2a10550b8e0d9f006a79cdaf8b5b130cde40e3ecc2c
@@ -1341,6 +1360,7 @@ CHECKSUMS
   ruby-vips (2.3.0) sha256=e685ec02c13969912debbd98019e50492e12989282da5f37d05f5471442f5374
   rubyXL (3.4.33) sha256=dc2732dacf5f963fdd9732eb36b3342cb240414371ed8d9f327f667d2b286d2e
   rubyzip (2.3.2) sha256=3f57e3935dc2255c414484fbf8d673b4909d8a6a57007ed754dde39342d2373f
+  sablon (0.4.3) sha256=f67e990ba8727e2a53ebafedef23b3f5561c754a93c9e8c1820e26e02ed3ea70
   sass-embedded (1.105.1-aarch64-linux-gnu) sha256=e86b54a8dc1ce0d348cf3e963b5f5650995666db9fdb534c4d6febaeaddc5c6b
   sass-embedded (1.105.1-aarch64-linux-musl) sha256=8f36f6de801adbaff3280f6758df790a4f97340ad10034df58cfda280c445c11
   sass-embedded (1.105.1-arm-linux-gnueabihf) sha256=8c134162e7d8769a01a3775aff66b14e97677f3eda025dc353b0f994ad50e058

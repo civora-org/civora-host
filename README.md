@@ -8,14 +8,14 @@ Issues for Civora are tracked in [`civora-org/civora-platform`](https://github.c
 
 - **No production deployment exists yet.** Hosting for a municipality is provisioned when a pilot is close. Until then the stack runs locally in Docker.
 - A **public demo** is documented in [`docs/ops/demo-server.md`](docs/ops/demo-server.md). It uses fictional data only and is wiped regularly. Nothing real may be put on it.
-- The engine is pinned to a release tag, [v1.8.0](https://github.com/civora-org/decidim-contracts_sk/releases). The engine release notes are in its [CHANGELOG](https://github.com/civora-org/decidim-contracts_sk/blob/main/CHANGELOG.md).
+- The engine is pinned to a release tag, [v1.10.0](https://github.com/civora-org/decidim-contracts_sk/releases). The engine release notes are in its [CHANGELOG](https://github.com/civora-org/decidim-contracts_sk/blob/main/CHANGELOG.md).
 
 ## Versions
 
 | Component | Version |
 |---|---|
 | Decidim | 0.32.2 (Rails 8.1) |
-| `decidim-contracts_sk` | v1.8.0 (pinned in the `Gemfile`) |
+| `decidim-contracts_sk` | v1.10.0 (pinned in the `Gemfile`) |
 | Ruby | 3.4.7 (`.ruby-version`) |
 | libvips | system library for image processing (replaces ImageMagick in Decidim 0.32); `libvips42t64` in the image |
 | Node.js | 22.14.0 (`.node-version`, for Shakapacker) |
@@ -127,14 +127,14 @@ Copy `.env.example` to `.env`. Never commit `.env`. The full variable inventory 
 The `Gemfile` pins the engine to a tag:
 
 ```ruby
-gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.8.0"
+gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.10.0"
 ```
 
 To work on a local engine checkout, use a Bundler local override. Never commit it:
 
 ```bash
 bundle config set --local local.decidim-contracts_sk /path/to/decidim-contracts_sk
-git -C /path/to/decidim-contracts_sk checkout v1.8.0   # Bundler refuses any other revision
+git -C /path/to/decidim-contracts_sk checkout v1.10.0   # Bundler refuses any other revision
 
 # when done
 bundle config unset --local local.decidim-contracts_sk
@@ -148,7 +148,7 @@ Inside Docker, use a personal, untracked `docker-compose.override.yml` that moun
 2. Run `bundle lock --update decidim-contracts_sk --conservative`, review the lock diff and run `bundler-audit`.
 3. Copy each **new** engine migration into `db/migrate/` verbatim, with its original timestamp and the `.decidim_contracts_sk.rb` suffix. Take it from the tag:
    ```bash
-   git -C ../decidim-contracts_sk show v1.8.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
+   git -C ../decidim-contracts_sk show v1.10.0:db/migrate/<file>.rb > db/migrate/<file-without-.rb>.decidim_contracts_sk.rb
    ```
 4. Do **not** run `bin/rails decidim_contracts_sk:install:migrations` here. It re-stamps timestamps, and a database that already ran the engine migrations would run them again.
 5. Migrate, commit the regenerated `db/schema.rb` (its diff should contain only the engine's tables, columns and the version), rebuild the image and walk through the [demo test plan](docs/qa/demo-test-plan.md).
@@ -186,7 +186,7 @@ After onboarding, the pilot checklist in short:
 3. Create the system admin, then set the default locale to `sk` and the organisation's logo and colours in `/system`.
 4. Invite the municipality's admins. Each one enrols a second factor before using the admin. Check with `bin/rails two_factor:status`.
 5. Make sure the pilot has at least two people with engine roles. The person who submits a contract cannot approve, return or reject it. A single-person municipality must opt out explicitly with `Decidim::ContractsSk.allow_self_review = true` in `config/initializers/contracts_sk.rb`. Self-reviews are then audited.
-6. Schedule the CRZ sync, the search-alert digest (`decidim_contracts_sk:subscriptions:deliver`, daily) and the backups with `BACKUP_STRICT=1` (age key pair generated and stored, bucket at another provider, `PUSHGATEWAY_URL` set; [`restore-runbook.md`](docs/ops/restore-runbook.md)), and log one restore drill from the off-site copy on a second machine.
+6. Schedule the CRZ sync, the search-alert digest (`decidim_contracts_sk:subscriptions:deliver`, daily), the CRZ deadline digest (the `digest-scheduler` compose service, working days 07:30; [`crz-deadline-digest.md`](docs/ops/crz-deadline-digest.md)) and the backups with `BACKUP_STRICT=1` (age key pair generated and stored, bucket at another provider, `PUSHGATEWAY_URL` set; [`restore-runbook.md`](docs/ops/restore-runbook.md)), and log one restore drill from the off-site copy on a second machine.
 7. Walk the demo test plan on the pilot stack with `MANUAL-2026-` records, then archive them.
 
 ## Demo and QA

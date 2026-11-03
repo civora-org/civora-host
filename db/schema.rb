@@ -576,6 +576,60 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.index ["contract_id", "target_type", "target_id"], name: "idx_contracts_sk_contract_links_on_contract_and_target", unique: true
   end
 
+  create_table "decidim_contracts_sk_contract_organization_profiles", force: :cascade do |t|
+    t.bigint "decidim_organization_id", null: false
+    t.json "header", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decidim_organization_id"], name: "idx_contracts_sk_org_profiles_unique_organization", unique: true
+  end
+
+  create_table "decidim_contracts_sk_contract_template_entries", force: :cascade do |t|
+    t.bigint "contract_id", null: false
+    t.bigint "contract_template_id", null: false
+    t.integer "template_version", null: false
+    t.json "values", default: {}, null: false
+    t.text "personal_values"
+    t.string "internal_number"
+    t.bigint "decidim_created_by_id"
+    t.datetime "last_generated_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_id"], name: "idx_contracts_sk_template_entries_unique_contract", unique: true
+    t.index ["contract_template_id"], name: "idx_contracts_sk_template_entries_on_template_id"
+  end
+
+  create_table "decidim_contracts_sk_contract_template_fields", force: :cascade do |t|
+    t.bigint "contract_template_id", null: false
+    t.string "key", null: false
+    t.string "label", null: false
+    t.string "field_type", default: "text", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "required", default: false, null: false
+    t.boolean "personal_data", default: false, null: false
+    t.text "help_text"
+    t.string "group_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "group_label"
+    t.index ["contract_template_id", "key"], name: "idx_contracts_sk_template_fields_unique_key", unique: true
+  end
+
+  create_table "decidim_contracts_sk_contract_templates", force: :cascade do |t|
+    t.bigint "decidim_organization_id", null: false
+    t.string "lineage_key", null: false
+    t.integer "version", default: 1, null: false
+    t.string "name", null: false
+    t.string "status", default: "draft", null: false
+    t.string "source_filename"
+    t.string "source_checksum"
+    t.string "reference_pattern"
+    t.bigint "decidim_created_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decidim_organization_id", "lineage_key", "version"], name: "idx_contracts_sk_contract_templates_unique_version", unique: true
+  end
+
   create_table "decidim_contracts_sk_contracts", force: :cascade do |t|
     t.bigint "decidim_organization_id", null: false
     t.bigint "decidim_author_id", null: false
@@ -603,6 +657,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.datetime "crz_filed_at"
     t.date "crz_published_on"
     t.string "crz_filing_reason", limit: 1000
+    t.date "agreed_effective_on"
     t.index ["decidim_author_id"], name: "index_decidim_contracts_sk_contracts_on_decidim_author_id"
     t.index ["decidim_organization_id", "reference"], name: "idx_contracts_sk_contracts_on_organization_id_and_reference", unique: true
     t.index ["decidim_organization_id", "source", "source_id"], name: "idx_contracts_sk_contracts_on_organization_id_and_source_id"
@@ -636,6 +691,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.index ["contract_id"], name: "idx_contracts_sk_documents_on_contract_id"
   end
 
+  create_table "decidim_contracts_sk_generated_documents", force: :cascade do |t|
+    t.bigint "contract_id", null: false
+    t.bigint "entry_id", null: false
+    t.string "variant", null: false
+    t.string "file_format", null: false
+    t.string "status", default: "current", null: false
+    t.string "checksum"
+    t.bigint "decidim_generated_by_id"
+    t.datetime "generated_at", null: false
+    t.integer "template_version", null: false
+    t.bigint "promoted_document_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_id", "variant", "file_format", "status"], name: "idx_contracts_sk_generated_documents_lookup"
+    t.index ["entry_id"], name: "idx_contracts_sk_generated_documents_on_entry_id"
+  end
+
   create_table "decidim_contracts_sk_notes", force: :cascade do |t|
     t.bigint "contract_id", null: false
     t.bigint "decidim_author_id", null: false
@@ -653,6 +725,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["contract_id", "role"], name: "idx_contracts_sk_parties_on_contract_id_and_role"
+  end
+
+  create_table "decidim_contracts_sk_reference_counters", force: :cascade do |t|
+    t.bigint "decidim_organization_id", null: false
+    t.string "scope_key", null: false
+    t.bigint "last_value", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["decidim_organization_id", "scope_key"], name: "idx_contracts_sk_reference_counters_unique_scope", unique: true
   end
 
   create_table "decidim_contracts_sk_subscriptions", force: :cascade do |t|
@@ -1919,10 +2000,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_03_090000) do
   add_foreign_key "decidim_contracts_sk_audit_events", "decidim_organizations"
   add_foreign_key "decidim_contracts_sk_audit_events", "decidim_users"
   add_foreign_key "decidim_contracts_sk_contract_links", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_contract_organization_profiles", "decidim_organizations"
+  add_foreign_key "decidim_contracts_sk_contract_template_entries", "decidim_contracts_sk_contract_templates", column: "contract_template_id"
+  add_foreign_key "decidim_contracts_sk_contract_template_entries", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_contract_template_fields", "decidim_contracts_sk_contract_templates", column: "contract_template_id"
+  add_foreign_key "decidim_contracts_sk_contract_templates", "decidim_organizations"
   add_foreign_key "decidim_contracts_sk_crz_attachments", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_documents", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_generated_documents", "decidim_contracts_sk_contract_template_entries", column: "entry_id"
+  add_foreign_key "decidim_contracts_sk_generated_documents", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_generated_documents", "decidim_contracts_sk_documents", column: "promoted_document_id", on_delete: :nullify
   add_foreign_key "decidim_contracts_sk_notes", "decidim_contracts_sk_contracts", column: "contract_id"
   add_foreign_key "decidim_contracts_sk_parties", "decidim_contracts_sk_contracts", column: "contract_id"
+  add_foreign_key "decidim_contracts_sk_reference_counters", "decidim_organizations"
   add_foreign_key "decidim_contracts_sk_user_roles", "decidim_organizations"
   add_foreign_key "decidim_contracts_sk_user_roles", "decidim_users"
   add_foreign_key "decidim_debates_debates", "decidim_scopes"
