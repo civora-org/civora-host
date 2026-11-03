@@ -103,7 +103,7 @@ class ThemeOverrideDriftTest < ActiveSupport::TestCase
 
   test "the admin chrome colours keep WCAG AA contrast" do
     scss = Rails.root.join("app/packs/stylesheets/decidim/civora/_admin.scss").read
-    token = ->(name) { scss[/--civora-#{name}: (#\h{6});/, 1] || flunk("--civora-#{name} is not defined in _admin.scss") }
+    token = ->(name) { scss[/--desk-#{name}: (#\h{6});/, 1] || flunk("--desk-#{name} is not defined in _admin.scss") }
     luminance = lambda do |hex|
       hex.delete("#").scan(/../).map { |c| c.hex / 255.0 }.map { |v| v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055)**2.4 }
          .zip([0.2126, 0.7152, 0.0722]).sum { |v, w| v * w }

@@ -14,15 +14,17 @@
 // =============================================================================
 
 :root {
-  --civora-indigo: #34408a;
-  --civora-indigo-deep: #232c63;
-  --civora-paper: #fbf6ee;
-  --civora-paper-light: #fdfaf6;
-  --civora-cream: #f3e9db;
-  --civora-rule: #e3d8c8;
-  --civora-ink: #2b2a40;
-  --civora-muted: #5b576c;
-  --civora-font-text: "Source Sans 3", "Source Sans Pro", ui-sans-serif, system-ui, sans-serif;
+  // --desk-*: its own namespace, so the public theme's tokens never enter the
+  // admin and the shared Tailwind fallbacks stay Decidim's.
+  --desk-indigo: #34408a;
+  --desk-indigo-deep: #232c63;
+  --desk-paper: #fbf6ee;
+  --desk-paper-light: #fdfaf6;
+  --desk-cream: #f3e9db;
+  --desk-rule: #e3d8c8;
+  --desk-ink: #2b2a40;
+  --desk-muted: #5b576c;
+  --desk-font-text: "Source Sans 3", "Source Sans Pro", ui-sans-serif, system-ui, sans-serif;
 
   // One action colour. Decidim's admin ships a red --primary and a blue
   // --secondary; every .button__primary / .button__secondary and every
@@ -39,9 +41,9 @@ html {
 }
 
 body {
-  background-color: var(--civora-paper);
-  color: var(--civora-ink);
-  font-family: var(--civora-font-text);
+  background-color: var(--desk-paper);
+  color: var(--desk-ink);
+  font-family: var(--desk-font-text);
 }
 
 button,
@@ -54,12 +56,12 @@ textarea {
 // -- Page ground and panels ---------------------------------------------------
 
 .layout-content {
-  background-color: var(--civora-paper);
+  background-color: var(--desk-paper);
 }
 
 .layout-content .card .table-scroll {
-  background-color: var(--civora-paper-light);
-  border: 1px solid var(--civora-rule);
+  background-color: var(--desk-paper-light);
+  border: 1px solid var(--desk-rule);
   border-radius: 8px;
 }
 
@@ -71,8 +73,8 @@ textarea {
 }
 
 .layout-content .item__edit-form .card {
-  background-color: var(--civora-paper-light);
-  border: 1px solid var(--civora-rule);
+  background-color: var(--desk-paper-light);
+  border: 1px solid var(--desk-rule);
   border-radius: 8px;
 
   .card-section,
@@ -99,15 +101,15 @@ textarea {
   select,
   textarea
 ) {
-  background-color: var(--civora-paper-light);
+  background-color: var(--desk-paper-light);
   border: 1px solid #89868e;
   border-radius: 6px;
-  color: var(--civora-ink);
+  color: var(--desk-ink);
 }
 
 .layout-content.layout-content :is(input, select, textarea):focus-visible {
-  border-color: var(--civora-indigo);
-  outline: 3px solid var(--civora-indigo);
+  border-color: var(--desk-indigo);
+  outline: 3px solid var(--desk-indigo);
   outline-offset: 1px;
 }
 
@@ -115,17 +117,17 @@ textarea {
 // save button is the one filled action (Decidim renders it as the white
 // .button__secondary, drawn for the old slate bar).
 .item__edit-sticky {
-  background-color: var(--civora-paper-light);
-  border-top: 1px solid var(--civora-rule);
+  background-color: var(--desk-paper-light);
+  border-top: 1px solid var(--desk-rule);
 
   .button {
-    background-color: var(--civora-indigo);
-    border-color: var(--civora-indigo);
+    background-color: var(--desk-indigo);
+    border-color: var(--desk-indigo);
     color: #fff;
 
     &:hover {
-      background-color: var(--civora-indigo-deep);
-      border-color: var(--civora-indigo-deep);
+      background-color: var(--desk-indigo-deep);
+      border-color: var(--desk-indigo-deep);
     }
   }
 }
@@ -135,7 +137,7 @@ textarea {
 .sidebar-menu__item {
   &.is-active > a,
   & > a:hover {
-    background-color: var(--civora-paper-light);
+    background-color: var(--desk-paper-light);
   }
 }
 
@@ -145,7 +147,7 @@ textarea {
 
 .layout-nav,
 .layout-wrapper .layout-nav .main-nav {
-  background-color: var(--civora-indigo-deep);
+  background-color: var(--desk-indigo-deep);
 }
 
 .layout-wrapper .layout-nav .main-nav__modules {
@@ -161,7 +163,7 @@ textarea {
 
   a {
     border-radius: 8px;
-    color: var(--civora-paper);
+    color: var(--desk-paper);
     font-weight: 600;
     line-height: 1.25;
     padding-inline: 0.25rem;
@@ -172,7 +174,7 @@ textarea {
     }
 
     &:focus-visible {
-      outline: 3px solid var(--civora-paper);
+      outline: 3px solid var(--desk-paper);
       outline-offset: 1px;
     }
   }
@@ -183,12 +185,12 @@ textarea {
 
   .is-active a,
   a[aria-current="page"] {
-    background-color: var(--civora-paper-light);
-    color: var(--civora-indigo-deep);
+    background-color: var(--desk-paper-light);
+    color: var(--desk-indigo-deep);
 
     &:hover {
-      background-color: var(--civora-paper-light);
-      color: var(--civora-indigo-deep);
+      background-color: var(--desk-paper-light);
+      color: var(--desk-indigo-deep);
     }
   }
 }
@@ -203,7 +205,7 @@ textarea {
   padding: 1rem 0.5rem 0.75rem;
 
   img {
-    background-color: var(--civora-paper-light);
+    background-color: var(--desk-paper-light);
     border-radius: 10px;
     box-sizing: border-box;
     max-height: 3.25rem;
@@ -213,7 +215,7 @@ textarea {
   }
 
   &:focus-visible {
-    outline: 3px solid var(--civora-paper);
+    outline: 3px solid var(--desk-paper);
     outline-offset: -3px;
   }
 }
@@ -222,47 +224,47 @@ textarea {
 // Paper with a hairline, ink text; replaces the yellow --tertiary bar.
 
 .title-bar {
-  background-color: var(--civora-paper);
-  border-bottom: 1px solid var(--civora-rule);
-  color: var(--civora-ink);
+  background-color: var(--desk-paper);
+  border-bottom: 1px solid var(--desk-rule);
+  color: var(--desk-ink);
 
   .menu-trigger svg,
   .tool-bar svg {
-    fill: var(--civora-ink);
+    fill: var(--desk-ink);
   }
 
   .tool-bar {
     .button__site {
-      background-color: var(--civora-paper-light);
-      border: 1px solid var(--civora-rule);
+      background-color: var(--desk-paper-light);
+      border: 1px solid var(--desk-rule);
       border-radius: 8px;
-      color: var(--civora-ink);
+      color: var(--desk-ink);
       font-weight: 600;
       padding: 0.25rem 0.625rem;
 
       &:hover {
-        background-color: var(--civora-cream);
+        background-color: var(--desk-cream);
       }
 
       svg {
-        fill: var(--civora-ink);
+        fill: var(--desk-ink);
       }
     }
 
     .dropdown__trigger {
-      color: var(--civora-ink);
+      color: var(--desk-ink);
     }
   }
 
   a:focus-visible,
   button:focus-visible {
-    outline: 3px solid var(--civora-indigo);
+    outline: 3px solid var(--desk-indigo);
     outline-offset: 2px;
   }
 }
 
 .main .title-bar .dropdown__trigger svg {
-  fill: var(--civora-ink);
+  fill: var(--desk-ink);
 }
 
 // -- Breadcrumb band ----------------------------------------------------------
@@ -271,39 +273,39 @@ textarea {
 
 .process-title,
 .voting-title {
-  background-color: var(--civora-paper);
-  border-bottom: 1px solid var(--civora-rule);
-  color: var(--civora-ink);
+  background-color: var(--desk-paper);
+  border-bottom: 1px solid var(--desk-rule);
+  color: var(--desk-ink);
 
   .process-title-content {
-    color: var(--civora-ink);
+    color: var(--desk-ink);
 
     .text-white,
     span {
-      color: var(--civora-muted);
+      color: var(--desk-muted);
     }
 
     .process-title-content-breadcrumb,
     span.process-title-content-breadcrumb {
-      color: var(--civora-ink);
+      color: var(--desk-ink);
     }
 
     a.process-title-content-breadcrumb {
-      color: var(--civora-indigo);
+      color: var(--desk-indigo);
       text-decoration: underline;
       text-underline-offset: 0.2em;
 
       &:hover,
       &:focus {
         backdrop-filter: none;
-        background-color: var(--civora-cream);
+        background-color: var(--desk-cream);
       }
     }
 
     svg,
     .dropdown__trigger svg,
     &-icon-home svg {
-      fill: var(--civora-ink);
+      fill: var(--desk-ink);
     }
 
     // The "Sprava" menu trigger: Decidim draws it as a filled --secondary
@@ -314,25 +316,25 @@ textarea {
     .dropdown__trigger,
     .dropdown__trigger.button,
     button.dropdown {
-      background: var(--civora-paper-light);
-      border: 1px solid var(--civora-rule);
+      background: var(--desk-paper-light);
+      border: 1px solid var(--desk-rule);
       border-radius: 8px;
-      color: var(--civora-ink);
+      color: var(--desk-ink);
 
       &:hover,
       &[aria-expanded="true"] {
-        background: var(--civora-cream);
-        color: var(--civora-ink);
+        background: var(--desk-cream);
+        color: var(--desk-ink);
       }
 
       span {
-        color: var(--civora-ink);
+        color: var(--desk-ink);
       }
     }
 
     a:focus-visible,
     button:focus-visible {
-      outline: 3px solid var(--civora-indigo);
+      outline: 3px solid var(--desk-indigo);
       outline-offset: 2px;
     }
   }
