@@ -54,3 +54,12 @@
 /scripts
 /Procfile.dev
 /docs
+
+# Local-only files that must never be baked into an image: database dumps and
+# .env copies (backups/ holds encryption keys), agent worktrees, and the
+# uncommitted dev-stack files (docs/ops/local-stack-update.md).
+/backups/
+/.claude/
+/Dockerfile.dev
+/Gemfile.dev-engine
+/docker-compose.override.yml
