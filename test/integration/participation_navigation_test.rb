@@ -6,6 +6,7 @@ require "capybara" # Decidim's URL resolver reads Capybara.server_port
 require "factory_bot"
 require "decidim/core/test/factories"
 require "decidim/participatory_processes/test/factories"
+require "decidim/assemblies/test/factories"
 
 # Participation entry points: the header link and the hero CTA appear only when
 # the organization has a process a visitor can open; the homepage block is added
@@ -36,6 +37,25 @@ class ParticipationNavigationTest < ActionDispatch::IntegrationTest
     assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, count: 0
     assert_select "#hero-cta[href=?]", "/contracts"
     assert_select "#hero-cta-processes", count: 0
+  end
+
+  test "the desktop Menu button is left out while it only repeats the header links" do
+    FactoryBot.create(:participatory_process, :published, organization: @organization)
+
+    get "/sk/"
+
+    assert_select "#main-dropdown-summary-desktop", count: 0
+    assert_select "#dropdown-menu-main-desktop", count: 0
+    assert_select "#{HEADER_LINKS} > a[href$=?]", PROCESSES_HREF, count: 1
+  end
+
+  test "the desktop Menu button comes back when the menu holds something the bar does not link" do
+    FactoryBot.create(:assembly, :published, organization: @organization)
+
+    get "/sk/"
+
+    assert_select "#main-dropdown-summary-desktop", count: 1
+    assert_select "#dropdown-menu-main-desktop a[href$=?]", "/assemblies"
   end
 
   test "unpublished and private processes do not count" do

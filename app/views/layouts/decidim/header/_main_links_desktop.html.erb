@@ -12,6 +12,11 @@
     the gem on a Decidim bump (test/integration/header_override_drift_test.rb). %>
 <div class="flex items-center gap-x-8">
   <%# Civora: start %>
+  <%# The "Menu" dropdown lists the :menu registry (processes, contracts, and
+      assemblies when some are published) plus a highlighted process. While it
+      holds nothing the bar does not already link to, it is a duplicate and is
+      left out, which frees room for the search; any other item brings it back. %>
+  <% civora_menu_redundant = (breadcrumb_root_menu.items.map(&:identifier) - [:contracts_sk, :participatory_processes]).empty? %>
   <div>
     <%= link_to decidim.pages_path, class: "main-bar__links-desktop__item", "aria-label": t("layouts.decidim.footer.help") do %>
       <%= icon "question-line" %><span><%= t("layouts.decidim.footer.help") %></span>
@@ -71,6 +76,9 @@
       </div>
     </div>
   <% end %>
+  <%# Civora: start %>
+  <% unless civora_menu_redundant %>
+  <%# Civora: end %>
   <button id="main-dropdown-summary-desktop" class="main-bar__links-desktop__trigger"
           data-controller="main-menu"
           data-close-button="main-dropdown-summary-desktop-close"
@@ -89,4 +97,7 @@
       </div>
     </div>
   </div>
+  <%# Civora: start %>
+  <% end %>
+  <%# Civora: end %>
 </div>

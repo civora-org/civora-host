@@ -15,12 +15,24 @@ class HeaderOverrideDriftTest < ActiveSupport::TestCase
     host_lines = Rails.root.join(PATH).read.lines
     host_lines.shift(host_lines.index { |line| line.include?("%>") } + 1) # the header comment
 
-    start = host_lines.index { |line| line.include?("<%# Civora: start %>") }
-    finish = host_lines.index { |line| line.include?("<%# Civora: end %>") }
-    assert start && finish && start < finish, "the Civora block markers are missing"
+    body = without_civora_blocks(host_lines)
 
-    body = host_lines[0...start] + host_lines[(finish + 1)..]
     assert_equal gem_lines, body, "#{PATH} drifted from decidim-core #{spec.version}: re-copy it and re-insert the Civora block"
+  end
+
+  test "the language chooser override is the gem partial plus the marked Civora block" do
+    path = "app/views/layouts/decidim/header/_main_language_chooser.html.erb"
+    spec = Gem::Specification.find_by_name("decidim-core")
+    gem_lines = File.read(File.join(spec.full_gem_path, path)).lines
+    host_lines = Rails.root.join(path).read.lines
+    host_lines.shift(host_lines.index { |line| line.include?("%>") } + 1) # the header comment
+
+    body = without_civora_blocks(host_lines)
+    # The block replaces the gem's single locale-name line; the name stays in it.
+    gem_name = gem_lines.index { |line| line.include?('t("name", scope: "locale"') }
+    assert gem_name, "#{path} changed upstream: re-base it"
+    assert_equal gem_lines.reject.with_index { |_, i| i == gem_name }, body, "#{path} drifted from decidim-core #{spec.version}: re-copy it and re-insert the Civora block"
+    assert_includes Rails.root.join(path).read, 't("name", scope: "locale" )'
   end
 
   test "the topbar search override is the gem partial with only the catalogue substitutions" do
@@ -53,5 +65,20 @@ class HeaderOverrideDriftTest < ActiveSupport::TestCase
     host_lines = Rails.root.join(path).read.lines.map(&:strip)
 
     gem_lines.each { |line| assert_includes host_lines, line, "#{path} drifted from decidim-core #{spec.version}: missing #{line.inspect}" }
+  end
+
+  private
+
+  # The host copy minus every Civora: start .. Civora: end block (a block may
+  # open or close a Ruby conditional, so there can be several).
+  def without_civora_blocks(lines)
+    assert_equal lines.count { |line| line.include?("Civora: start") }, lines.count { |line| line.include?("Civora: end") }, "unbalanced Civora block markers"
+    inside = false
+    lines.reject do |line|
+      inside = true if line.include?("<%# Civora: start %>")
+      skip = inside
+      inside = false if line.include?("<%# Civora: end %>")
+      skip
+    end
   end
 end
