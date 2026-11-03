@@ -172,12 +172,13 @@ found one failure, in Decidim's stock language chooser (neutral-500 on paper,
 ### What the contracts engine still does by itself
 
 The catalogue and the contract page (`decidim-contracts_sk`) ship their own
-stylesheet (`.cs-*`, blue-grey ink and white chips) and their own credit line,
-and the pinned engine (v1.8.1) has no `civora_credit` partial. They sit on the
-paper ground and read fine, but they do not yet use the Civora tokens, and an
-engine page that renders its own credit shows it together with the footer
-signature. Moving the engine onto the host tokens is engine work, not part of this
-change.
+stylesheet (`.cs-*`, blue-grey ink and white chips) and their own Civora credit
+line (the engine's `shared/_civora_credit` partial, a muted signature at the foot
+of the public contract pages and the admin home; present in the pinned engine,
+v1.10.1). They sit on the paper ground and read fine, but they do not yet use the
+Civora tokens, and an engine page that renders its own credit shows it together
+with the footer signature. Moving the engine onto the host tokens is engine work,
+not part of this change.
 
 ## Non-goals
 

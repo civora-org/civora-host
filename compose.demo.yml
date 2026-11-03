@@ -27,6 +27,10 @@ services:
     # Never started by `up`; only `--profile crz-sync` would start it.
     profiles: ["crz-sync"]
 
+  digest-scheduler:
+    # Never started by `up`; the demo has no real CRZ deadlines to report.
+    profiles: ["crz-sync"]
+
   db:
     mem_limit: 512m
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=40"]
