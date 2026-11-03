@@ -98,15 +98,15 @@ class ThemeOverrideDriftTest < ActiveSupport::TestCase
     application = File.read(File.join(spec.full_gem_path, "app/packs/stylesheets/decidim/admin/application.scss"))
 
     %w(--primary --secondary --tertiary).each { |token| assert_match(/#{token}: #[0-9a-f]{6};/i, application) }
-    refute_match(/organization_colors|--primary-rgb: var/, application)
+    assert_no_match(/organization_colors|--primary-rgb: var/, application)
   end
 
   test "the admin chrome colours keep WCAG AA contrast" do
     scss = Rails.root.join("app/packs/stylesheets/decidim/civora/_admin.scss").read
     token = ->(name) { scss[/--desk-#{name}: (#\h{6});/, 1] || flunk("--desk-#{name} is not defined in _admin.scss") }
     luminance = lambda do |hex|
-      hex.delete("#").scan(/../).map { |c| c.hex / 255.0 }.map { |v| v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055)**2.4 }
-         .zip([0.2126, 0.7152, 0.0722]).sum { |v, w| v * w }
+      channels = hex.delete("#").scan(/../).map { |c| c.hex / 255.0 }.map { |v| v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055)**2.4 }
+      channels.zip([0.2126, 0.7152, 0.0722]).sum { |v, w| v * w }
     end
     ratio = lambda do |a, b|
       hi, lo = [luminance.call(token.call(a)), luminance.call(token.call(b))].sort.reverse
