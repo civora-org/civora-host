@@ -137,7 +137,7 @@ Follow [local-stack-update.md](local-stack-update.md); the app container there s
    ```
 7. Re-run the access-mode SQL (above) and the favicon check, then click through the demo once.
 
-Legacy links: `/contracts/...` GETs answer 301 to `/<locale>/contracts/...` (the locale is the `locale` parameter, the signed-in user's, the session's, else the **organisation's default**), POSTs from old pages and e-mails (the one-click unsubscribe) are served in place. Decidim's own legacy redirects (`/search`, `/pages`, ...) use a different detector that falls back to the application default locale (`en`) before the organisation's; that is upstream behaviour and not changed here.
+Legacy links: `/contracts/...` GETs answer 301 to `/<locale>/contracts/...` (the locale is the `locale` parameter, the signed-in user's, the session's, else the **organisation's default**), POSTs from old pages and e-mails (the one-click unsubscribe) are served in place. Decidim's own legacy redirects (`/search`, `/pages`, ...) use a different detector that falls back to the application default locale before the organisation's; that is upstream behaviour. The host therefore sets the application default to Slovak (`DECIDIM_DEFAULT_LOCALE=sk`, `DECIDIM_AVAILABLE_LOCALES=sk,en`, defaulted in `config/application.rb`), so an anonymous `/` goes to `/sk/`.
 
 `compose.dev.yml` still names the image `decidim/decidim:0.31.7`, which does not exist on Docker Hub (also before this upgrade); it is not touched here.
 

@@ -11,7 +11,7 @@ require "decidim/budgets/test/factories"
 # contracts linked to them. Fictional data only.
 module ParticipationLinkHelpers
   def build_tenant
-    organization = FactoryBot.create(:organization)
+    organization = FactoryBot.create(:organization, available_locales: %w(sk en), default_locale: "sk")
     space = FactoryBot.create(:participatory_process, organization:)
     author = FactoryBot.create(:user, :confirmed, organization:)
     { organization:, space:, author: }
