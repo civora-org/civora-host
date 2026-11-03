@@ -4,15 +4,15 @@ source "https://rubygems.org"
 
 ruby RUBY_VERSION
 
-gem "decidim", "0.32.1"
-# gem "decidim-ai", "0.32.1"
-# gem "decidim-collaborative_texts", "0.32.1"
-# gem "decidim-conferences", "0.32.1"
-# gem "decidim-demographics", "0.32.1"
-# gem "decidim-design", "0.32.1"
-# gem "decidim-elections", "0.32.1"
-# gem "decidim-initiatives", "0.32.1"
-# gem "decidim-templates", "0.32.1"
+gem "decidim", "0.32.2"
+# gem "decidim-ai", "0.32.2"
+# gem "decidim-collaborative_texts", "0.32.2"
+# gem "decidim-conferences", "0.32.2"
+# gem "decidim-demographics", "0.32.2"
+# gem "decidim-design", "0.32.2"
+# gem "decidim-elections", "0.32.2"
+# gem "decidim-initiatives", "0.32.2"
+# gem "decidim-templates", "0.32.2"
 
 gem "decidim-contracts_sk", github: "civora-org/decidim-contracts_sk", tag: "v1.8.1"
 
@@ -43,7 +43,7 @@ group :development, :test do
 
   gem "brakeman", "~> 7.0"
   gem "bundler-audit", "~> 0.9"
-  gem "decidim-dev", "0.32.1"
+  gem "decidim-dev", "0.32.2"
   # Rails 8.1 resolves minitest 6, which moved minitest/mock into its own gem
   # and is not yet what Rails' test runner is built for; stay on 5.x.
   gem "minitest", "~> 5.27"

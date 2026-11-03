@@ -8,7 +8,7 @@ Roles: the **maintainer** does all of this in the pilot (see the roles table in 
 
 | Component | Pin | Where |
 |---|---|---|
-| Decidim | 0.32.1 (exact, `=`) | `Gemfile`, `Gemfile.lock` |
+| Decidim | 0.32.2 (exact, `=`) | `Gemfile`, `Gemfile.lock` |
 | `decidim-contracts_sk` engine | tag `v1.8.0` (git source) | `Gemfile`, `Gemfile.lock`; upgrade steps in README *Upgrading the engine* |
 | Rails | 8.1.4 (supported until 2027-10-10; forced by Decidim) | `Gemfile.lock` |
 | Ruby | 3.4.7 | `.ruby-version`, `Dockerfile` (`ruby:3.4.7-slim`), CI |
