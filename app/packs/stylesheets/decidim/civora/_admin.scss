@@ -1,0 +1,339 @@
+// =============================================================================
+// Civora admin chrome for Decidim's admin: sidebar, topbar, breadcrumb band,
+// page ground, type. Direction: "Pracovny stol", a calm desk where the next
+// step is the brightest thing (brief: decidim-contracts_sk
+// tmp/qa-2026-11-03/admin-redesign-brief.md, section 1). Rationale and the
+// override list: docs/appearance.md.
+//
+// Unlike the public theme, the admin is Civora's own product surface, so the
+// Dvere identity leads here and the town's colours do not: Decidim's admin
+// ignores the organization colours (it hard-codes --primary, --secondary and
+// --tertiary in decidim-admin's application.scss), and nothing here reads
+// them. Plain CSS only (no @apply, no nesting beyond what Sass flattens, no
+// !important), loaded after decidim_admin.
+// =============================================================================
+
+:root {
+  --civora-indigo: #34408a;
+  --civora-indigo-deep: #232c63;
+  --civora-paper: #fbf6ee;
+  --civora-paper-light: #fdfaf6;
+  --civora-cream: #f3e9db;
+  --civora-rule: #e3d8c8;
+  --civora-ink: #2b2a40;
+  --civora-muted: #5b576c;
+  --civora-font-text: "Source Sans 3", "Source Sans Pro", ui-sans-serif, system-ui, sans-serif;
+
+  // One action colour. Decidim's admin ships a red --primary and a blue
+  // --secondary; every .button__primary / .button__secondary and every
+  // text-secondary link reads them, so Dvere indigo here makes them coherent
+  // (white on indigo 9.4:1; indigo on paper 8.7:1).
+  --primary: #34408a;
+  --primary-rgb: 52 64 138;
+  --secondary: #34408a;
+  --secondary-rgb: 52 64 138;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background-color: var(--civora-paper);
+  color: var(--civora-ink);
+  font-family: var(--civora-font-text);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+// -- Page ground and panels ---------------------------------------------------
+
+.layout-content {
+  background-color: var(--civora-paper);
+}
+
+.layout-content .card .table-scroll {
+  background-color: var(--civora-paper-light);
+  border: 1px solid var(--civora-rule);
+  border-radius: 8px;
+}
+
+// Panels on the paper ground: paper-light with a hairline, 8px corners, one
+// level deep. Decidim paints the settings and secondary-nav wrappers and the
+// form cards white; the wrapper becomes part of the page, the card is the panel.
+.layout-content .item_show__wrapper {
+  background-color: transparent;
+}
+
+.layout-content .item__edit-form .card {
+  background-color: var(--civora-paper-light);
+  border: 1px solid var(--civora-rule);
+  border-radius: 8px;
+
+  .card-section,
+  .card-divider {
+    background-color: transparent;
+  }
+}
+
+// Form controls. Decidim's admin edge is #e5e5e5 on #fafbfc (1.2:1), under the
+// 3:1 WCAG 1.4.11 asks of a control boundary; the edge here is #89868e (3.4:1
+// on paper-light). Selectors are doubled (.layout-content.layout-content) to
+// beat decidim_admin's own, deeper form rules without !important.
+.layout-content.layout-content :is(
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  select,
+  textarea
+) {
+  background-color: var(--civora-paper-light);
+  border: 1px solid #89868e;
+  border-radius: 6px;
+  color: var(--civora-ink);
+}
+
+.layout-content.layout-content :is(input, select, textarea):focus-visible {
+  border-color: var(--civora-indigo);
+  outline: 3px solid var(--civora-indigo);
+  outline-offset: 1px;
+}
+
+// Sticky save bar (settings and process forms): paper, hairline above, and the
+// save button is the one filled action (Decidim renders it as the white
+// .button__secondary, drawn for the old slate bar).
+.item__edit-sticky {
+  background-color: var(--civora-paper-light);
+  border-top: 1px solid var(--civora-rule);
+
+  .button {
+    background-color: var(--civora-indigo);
+    border-color: var(--civora-indigo);
+    color: #fff;
+
+    &:hover {
+      background-color: var(--civora-indigo-deep);
+      border-color: var(--civora-indigo-deep);
+    }
+  }
+}
+
+// Secondary navigation (users, settings): the same pill as the main sidebar,
+// in light.
+.sidebar-menu__item {
+  &.is-active > a,
+  & > a:hover {
+    background-color: var(--civora-paper-light);
+  }
+}
+
+// -- Sidebar ------------------------------------------------------------------
+// Deep indigo with paper text. The active item is a paper-light pill; hover is
+// a paper wash; focus is a paper ring (the dark ground needs a light ring).
+
+.layout-nav,
+.layout-wrapper .layout-nav .main-nav {
+  background-color: var(--civora-indigo-deep);
+}
+
+.layout-wrapper .layout-nav .main-nav__modules {
+  border-color: rgb(251 246 238 / 22%);
+}
+
+.layout-nav .main-nav ul:not(.tab-x-container) {
+  padding-inline: 0.5rem;
+
+  li {
+    padding-bottom: 0.25rem;
+  }
+
+  a {
+    border-radius: 8px;
+    color: var(--civora-paper);
+    font-weight: 600;
+    line-height: 1.25;
+    padding-inline: 0.25rem;
+
+    &:hover {
+      background-color: rgb(251 246 238 / 14%);
+      color: #fff;
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--civora-paper);
+      outline-offset: 1px;
+    }
+  }
+
+  svg {
+    fill: currentcolor;
+  }
+
+  .is-active a,
+  a[aria-current="page"] {
+    background-color: var(--civora-paper-light);
+    color: var(--civora-indigo-deep);
+
+    &:hover {
+      background-color: var(--civora-paper-light);
+      color: var(--civora-indigo-deep);
+    }
+  }
+}
+
+// The logo. The organization's own logo can be any colour (a town's navy, a
+// black crest, the Civora indigo wordmark), none of which is safe on deep
+// indigo. It always sits on a paper-light plate, so it reads the same for
+// every organization. The built-in Decidim mark (an inline svg, drawn white)
+// needs no plate on this ground.
+.layout-nav .logo {
+  background-color: transparent;
+  padding: 1rem 0.5rem 0.75rem;
+
+  img {
+    background-color: var(--civora-paper-light);
+    border-radius: 10px;
+    box-sizing: border-box;
+    max-height: 3.25rem;
+    object-fit: contain;
+    padding: 0.5rem 0.625rem;
+    width: 100%;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--civora-paper);
+    outline-offset: -3px;
+  }
+}
+
+// -- Topbar -------------------------------------------------------------------
+// Paper with a hairline, ink text; replaces the yellow --tertiary bar.
+
+.title-bar {
+  background-color: var(--civora-paper);
+  border-bottom: 1px solid var(--civora-rule);
+  color: var(--civora-ink);
+
+  .menu-trigger svg,
+  .tool-bar svg {
+    fill: var(--civora-ink);
+  }
+
+  .tool-bar {
+    .button__site {
+      background-color: var(--civora-paper-light);
+      border: 1px solid var(--civora-rule);
+      border-radius: 8px;
+      color: var(--civora-ink);
+      font-weight: 600;
+      padding: 0.25rem 0.625rem;
+
+      &:hover {
+        background-color: var(--civora-cream);
+      }
+
+      svg {
+        fill: var(--civora-ink);
+      }
+    }
+
+    .dropdown__trigger {
+      color: var(--civora-ink);
+    }
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid var(--civora-indigo);
+    outline-offset: 2px;
+  }
+}
+
+.main .title-bar .dropdown__trigger svg {
+  fill: var(--civora-ink);
+}
+
+// -- Breadcrumb band ----------------------------------------------------------
+// Was a slate bar with white text. It sits on the page ground now, with a
+// hairline under it, and reads as a path.
+
+.process-title,
+.voting-title {
+  background-color: var(--civora-paper);
+  border-bottom: 1px solid var(--civora-rule);
+  color: var(--civora-ink);
+
+  .process-title-content {
+    color: var(--civora-ink);
+
+    .text-white,
+    span {
+      color: var(--civora-muted);
+    }
+
+    .process-title-content-breadcrumb,
+    span.process-title-content-breadcrumb {
+      color: var(--civora-ink);
+    }
+
+    a.process-title-content-breadcrumb {
+      color: var(--civora-indigo);
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+
+      &:hover,
+      &:focus {
+        backdrop-filter: none;
+        background-color: var(--civora-cream);
+      }
+    }
+
+    svg,
+    .dropdown__trigger svg,
+    &-icon-home svg {
+      fill: var(--civora-ink);
+    }
+
+    // The "Sprava" menu trigger: Decidim draws it as a filled --secondary
+    // button with white text; here it is the same quiet outlined control as
+    // "Zobrazit stranku", in both states.
+    // .button:not(...):hover in decidim_core (white text on a dark overlay)
+    // out-ranks a plain class, hence the extra .button.
+    .dropdown__trigger,
+    .dropdown__trigger.button,
+    button.dropdown {
+      background: var(--civora-paper-light);
+      border: 1px solid var(--civora-rule);
+      border-radius: 8px;
+      color: var(--civora-ink);
+
+      &:hover,
+      &[aria-expanded="true"] {
+        background: var(--civora-cream);
+        color: var(--civora-ink);
+      }
+
+      span {
+        color: var(--civora-ink);
+      }
+    }
+
+    a:focus-visible,
+    button:focus-visible {
+      outline: 3px solid var(--civora-indigo);
+      outline-offset: 2px;
+    }
+  }
+}

@@ -67,4 +67,55 @@ class ThemeOverrideDriftTest < ActiveSupport::TestCase
       assert_includes template, %(#{name}: withOpacity("--#{name}-rgb"))
     end
   end
+
+  # The admin chrome (docs/appearance.md, "Civora admin chrome") hangs on one
+  # Decidim hook: stylesheets/decidim/admin/decidim_application.scss, an empty
+  # file the host replaces, which decidim-admin compiles into the
+  # decidim_admin_overrides pack the admin layout links last. These fail when a
+  # Decidim bump moves any part of that.
+  ADMIN_HOOK = "app/packs/stylesheets/decidim/admin/decidim_application.scss"
+
+  test "the admin override replaces a decidim-admin file that is still an empty hook" do
+    spec = Gem::Specification.find_by_name("decidim-admin")
+    gem_rules = File.read(File.join(spec.full_gem_path, ADMIN_HOOK)).lines.reject { |line| line.strip.empty? || line.start_with?("//") }
+
+    assert_empty gem_rules, "decidim-admin #{spec.version} now ships rules in #{ADMIN_HOOK}: merge them into the host copy"
+    assert Rails.root.join(ADMIN_HOOK).file?, "#{ADMIN_HOOK} is missing"
+  end
+
+  test "decidim-admin still compiles the hook into the overrides pack and links it after its own styles" do
+    spec = Gem::Specification.find_by_name("decidim-admin")
+    entry = File.read(File.join(spec.full_gem_path, "app/packs/entrypoints/decidim_admin_overrides.scss"))
+    header = File.read(File.join(spec.full_gem_path, "app/views/layouts/decidim/admin/_header.html.erb"))
+
+    assert_includes entry, '@use "stylesheets/decidim/admin/decidim_application";'
+    # append_stylesheet_pack_tag puts the overrides after the packs the layout lists.
+    assert_includes header, 'append_stylesheet_pack_tag "decidim_admin_overrides"'
+  end
+
+  test "the admin hard-codes its own colours, so the town's colours cannot reach the chrome" do
+    spec = Gem::Specification.find_by_name("decidim-admin")
+    application = File.read(File.join(spec.full_gem_path, "app/packs/stylesheets/decidim/admin/application.scss"))
+
+    %w(--primary --secondary --tertiary).each { |token| assert_match(/#{token}: #[0-9a-f]{6};/i, application) }
+    refute_match(/organization_colors|--primary-rgb: var/, application)
+  end
+
+  test "the admin chrome colours keep WCAG AA contrast" do
+    scss = Rails.root.join("app/packs/stylesheets/decidim/civora/_admin.scss").read
+    token = ->(name) { scss[/--civora-#{name}: (#\h{6});/, 1] || flunk("--civora-#{name} is not defined in _admin.scss") }
+    luminance = lambda do |hex|
+      hex.delete("#").scan(/../).map { |c| c.hex / 255.0 }.map { |v| v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055)**2.4 }
+         .zip([0.2126, 0.7152, 0.0722]).sum { |v, w| v * w }
+    end
+    ratio = lambda do |a, b|
+      hi, lo = [luminance.call(token.call(a)), luminance.call(token.call(b))].sort.reverse
+      (hi + 0.05) / (lo + 0.05)
+    end
+
+    { %w(paper indigo-deep) => 4.5, %w(indigo-deep paper-light) => 4.5, %w(indigo paper) => 4.5,
+      %w(ink paper) => 4.5, %w(muted paper) => 4.5, %w(ink cream) => 4.5 }.each do |(a, b), minimum|
+      assert_operator ratio.call(a, b), :>=, minimum, "#{a} on #{b} is below #{minimum}:1"
+    end
+  end
 end
