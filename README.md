@@ -211,8 +211,9 @@ The engine provides markup only. The Civora look and content live in this reposi
 | Participation links: resolver and two view overrides | `app/lib/participation_link_resolver.rb`, `app/views/decidim/accountability/results/_result.html.erb`, `app/views/decidim/budgets/projects/show.html.erb` |
 | Admin second factor | `app/lib/two_factor`, `app/controllers/two_factor`, `config/initializers/two_factor.rb` |
 | Engine configuration seams | `config/initializers/contracts_sk.rb` |
+| Civora public theme: tokens, self-hosted fonts, paper ground, header, hero, cards, footer signature | `app/packs/stylesheets/decidim/civora/`, `app/packs/fonts/civora/`, `config/tailwind.config.js.erb`, `app/views/layouts/decidim/footer/_mini.html.erb`; see [`docs/appearance.md`](docs/appearance.md) |
 
-The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.32.1 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views, or the header links partial, drift from the installed gems.
+The view overrides replace decidim-core, decidim-accountability and decidim-budgets 0.32.1 partials by path. Re-check them on every Decidim upgrade. A test fails when the two participation-link views, the header links partial, the footer mini partial or the Tailwind config template drift from the installed gems.
 
 Participation link setup: [`docs/ops/participation-link.md`](docs/ops/participation-link.md).
 
