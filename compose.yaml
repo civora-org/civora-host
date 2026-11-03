@@ -86,6 +86,37 @@ services:
       redis:
         condition: service_healthy
 
+  # Morning CRZ deadline digest (engine task decidim_contracts_sk:crz_deadline_digest,
+  # civora-org/civora-platform#211): Monday to Friday at 07:30 Europe/Bratislava,
+  # for every organization. Needs working SMTP. Runbook: docs/ops/crz-deadline-digest.md
+  digest-scheduler:
+    image: civora-host:latest
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      RAILS_ENV: production
+      TZ: Europe/Bratislava
+      GIT_REVISION: ${GIT_REVISION:-}
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      REDIS_URL: redis://redis:6379/1
+    command: ["sh", "scripts/crz_deadline_digest_scheduler.sh"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   db:
     image: postgres:17
     restart: unless-stopped
