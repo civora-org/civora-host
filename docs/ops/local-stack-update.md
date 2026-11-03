@@ -50,7 +50,7 @@ Run the steps in order. Expect 15–20 minutes, plus the time any data backfill 
    git -C ~/Code/decidim-contracts_sk/.claude/worktrees/host-main checkout --detach origin/main
    ```
 
-5. **Rebuild the images and recreate the containers.** The build takes 2–5 minutes. Build the production image first, then the dev image on top of it. (`docker compose build app` does nothing here, because the override removes the app's `build:`.)
+5. **Rebuild the images and recreate the containers.** First check `docker system df`: the Docker VM needs about 10 GB free, or the build fails and can take the running site down with it (see the 2026-11-03 log). The build takes 2–5 minutes. Build the production image first, then the dev image on top of it. (`docker compose build app` does nothing here, because the override removes the app's `build:`.)
    ```bash
    docker build -t civora-host:latest .
    docker build -t civora-host:dev -f Dockerfile.dev .
@@ -192,6 +192,25 @@ bin/rails "civora:home:participation[3]"
 - **Checked:** public pages in both orgs return 200. The admin home, the contracts list and a contract page with the step bar render (200, no missing translations) in both orgs. The check ran in a one-off `rails runner` session with the 2FA gates relaxed for that process only; the running site keeps both gates.
 - **Rollback:** `git -C <engine>/.claude/worktrees/host-main checkout --detach v1.8.0` and `docker restart civora-host-app-1`.
 - **Note:** host `main` is now on Decidim 0.32.1 (civora-host#43). The demo stack stays on the 0.31.7 image until after the 15. 10. call; then follow `docs/ops/decidim-0.32-upgrade.md`.
+
+### 2026-11-03 — Decidim 0.32.1 → 0.32.2, Civora public theme, engine `main` → tag `v1.10.1`
+
+**Backups:** `backups/pre-theme-0322-2026-11-03.dump` (before the 0.32.2 and theme rebuild), `backups/pre-header-2026-11-03.dump`, `backups/pre-v1.10.1-2026-11-03.dump`; `.env` copy in `backups/env-pre-theme-2026-11-03`.
+
+**What came in — host:** civora-host#51 (Civora public theme), #52 (gems flagged by bundler-audit), #53 (Decidim 0.32.2, graphql 2.6.14), #54 (header search visible from 1024 px, locale code in the language chooser, desktop Menu hidden when it only repeats header links), #55 (Slovak default locale for the locale redirects), #56 (smaller header logo), #57 (`.dockerignore` keeps `backups/` and `.claude/` out of the build context), #58 (engine pin v1.10.1, eight engine migrations, CRZ deadline digest scheduler).
+
+**What came in — engine:** v1.10.0 (contract templates in Word/PDF with a publication copy, CRZ effectiveness status and deadline digest, town accent and Civora credit, one place for the list/statistics switch) and v1.10.1 (registered icon for the organisation header menu item).
+
+**Migrations run:** `20261103090000_add_failed_attempts_and_locked_at_to_decidim_authorizations` (Decidim 0.32.2). The eight engine migrations (`20261013020000`, `20261020100001`–`06`, `20261103000001`) had already run from copied files with the same timestamps; the host now ships them.
+
+**Data:** organization 1 got the Dvere wordmark as logo and the Civora door mark (`brand/mark-512.png` from civora-site) as favicon, which Decidim shows as the mobile header logo. Organization 3 keeps no logo.
+
+**Dev files:** `Dockerfile.dev` lost its temporary `gem install sablon pdf-reader` lines (the host lock now has both). The engine worktree `host-main` is back on a tag (`v1.10.1`).
+
+**Gotchas hit this time**
+- **Docker ran out of disk mid-build and the live site returned 500** (`Errno::ENOSPC` writing Rack::Attack's cache under `/app/tmp`). The build context held `.claude/worktrees/` (agent worktrees) and the Docker VM disk was full of build cache (17 GB). Fixed with `docker image rm` of an unused image (prune itself needs a little free space), then `docker builder prune -af`. Prevention: civora-host#57, and check `docker system df` before step 5 (keep ~10 GB free in the Docker VM).
+- **Local images had `backups/` baked in** (database dumps and `.env` copies with the encryption keys). Never pushed anywhere; old images removed. civora-host#57 fixes the context.
+- **Decidim 0.32.2 redirected `/` to `/en/`**: the locale redirect checks `I18n.locale` before the organization's default locale. civora-host#55 sets `sk` as the default.
 
 ## The uncommitted dev files
 
