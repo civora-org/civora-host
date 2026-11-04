@@ -1,9 +1,9 @@
 GIT
   remote: https://github.com/civora-org/decidim-contracts_sk.git
-  revision: 26b1726db95d181045fa62221713695398c93733
-  tag: v1.12.0
+  revision: 6a33f0aeb0af4282a1df988a1346b9d20116a6c3
+  tag: v1.13.0
   specs:
-    decidim-contracts_sk (1.12.0)
+    decidim-contracts_sk (1.13.0)
       csv (~> 3.0)
       decidim-admin (>= 0.31.5, < 0.33)
       decidim-core (>= 0.31.5, < 0.33)
@@ -1141,7 +1141,7 @@ CHECKSUMS
   decidim-blogs (0.32.2) sha256=172671ec835a0ac6896c62ae6aae2c096591f3422ae248fdda8cf55a79573fab
   decidim-budgets (0.32.2) sha256=fe2d954091e741bbe93bb5071bc6680dfb71fd77c9638bd815efa27f7a97127d
   decidim-comments (0.32.2) sha256=8c38b9140072bb6fba78dce6de527d465b4fec206a0e418ff6f0379234b8dff5
-  decidim-contracts_sk (1.12.0)
+  decidim-contracts_sk (1.13.0)
   decidim-core (0.32.2) sha256=3e65f8cad2bfbab6b6859222778764e45454d7f074d58cc456790dcd908f45e3
   decidim-debates (0.32.2) sha256=2fb13bc687f7243d1caf6b14ad56228545a3f41fb0872108257959ba62081bf1
   decidim-dev (0.32.2) sha256=3329ca7aabd87f2c3827b4bea1d1b22b587db81461fa44be7bd941885d4f73da
